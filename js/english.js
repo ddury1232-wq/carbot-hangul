@@ -510,6 +510,7 @@
     if (more) {
       more.style.display = justUnlocked.length ? 'none' : '';
       more.className = justUnlocked.length ? 'btn ghost' : 'btn primary';
+      more.textContent = '▶ 다음 단어';
     }
     if (go) go.className = 'btn primary';
   }
