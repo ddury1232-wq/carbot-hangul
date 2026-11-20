@@ -12,14 +12,46 @@
      missions: 리더스 읽음
      quiz   : 소리 듣고 고르기 — 문제별 정답 기록 {t, ok, tries}
      sight  : 사이트 워드 {t, done, steps, srs}
-     blocks : 리더스 문장 블록 완성 {t, done, tries}
+     blocks : 리더스 문장 블록 {t, done, tries, list, idx}
+              list = 맞춘 문장 번호 목록, idx = 다음에 풀 문장 번호, done = 6문장 모두 완성
+     ui     : 화면 설정 {pic, t} — 그림 힌트 ON/OFF (학습 기록이 아니므로 isEmptyState 에는 영향 없음)
      words·sight 기록의 srs = {box, due, last} (1·3·7·14·30일 복습 일정) */
   function defaultEn() {
     return {
       words: {}, missions: {}, last: 0,
       quiz: { q: {}, last: 0 },
       sight: { words: {}, last: 0 },
-      blocks: {}
+      blocks: {},
+      ui: { pic: true, t: 0 }
+    };
+  }
+
+  function blockTotal(missionId) {
+    const map = (typeof window !== 'undefined' && window.EN_BLOCKS_BY_MISSION) || null;
+    const arr = map && map[missionId];
+    return arr ? arr.length : 6;
+  }
+
+  /* 문장 블록 기록 하나를 표준 모양으로 맞춥니다.
+     - 새 모양 : {t, tries, list:[맞춘 문장 번호], idx, done}
+     - 구버전  : {t, done, tries} (리더스당 문장 1개) → 1번 문장을 맞춘 것으로 살려 둡니다 */
+  function normalizeBlock(b, missionId) {
+    const total = blockTotal(missionId);
+    const src = b || {};
+    if (Array.isArray(src.list) && typeof src.idx === 'number' && (src.done === 0 || src.done === 1)) return src;
+    let list = [];
+    if (Array.isArray(src.list)) {
+      list = src.list.filter(n => typeof n === 'number' && n >= 0 && n < total);
+    } else if (src.done) {
+      list = [0];
+    }
+    list = [...new Set(list)].sort((x, y) => x - y);
+    let idx = 0;
+    while (idx < total && list.indexOf(idx) >= 0) idx++;
+    return {
+      t: src.t || 0, tries: src.tries || 0,
+      list: list, idx: idx,
+      done: list.length >= total ? 1 : 0
     };
   }
 
@@ -31,7 +63,10 @@
     e.quiz.q = e.quiz.q || {};
     e.sight = e.sight || { words: {}, last: 0 };
     e.sight.words = e.sight.words || {};
-    e.blocks = e.blocks || {};
+    const blocks = {};
+    Object.keys(e.blocks || {}).forEach(k => { blocks[k] = normalizeBlock(e.blocks[k], k); });
+    e.blocks = blocks;
+    e.ui = Object.assign({ pic: true, t: 0 }, e.ui || {});
     e.last = e.last || 0;
     return e;
   }
@@ -301,17 +336,36 @@
     return q;
   }
 
-  function enBlockDone(missionId, done) {
+  function enBlockDone(missionId, idx, total) {
     const en = enState();
-    const b = en.blocks[missionId] || { t: 0, done: 0, tries: 0 };
-    b.tries = (b.tries || 0) + 1;
-    if (done) b.done = 1;
-    b.t = Date.now();
+    const n = total || blockTotal(missionId);
+    const prev = normalizeBlock(en.blocks[missionId], missionId);
+    let at;
+    if (typeof idx === 'boolean') at = idx ? 0 : -1;            // 예전 호출 호환
+    else if (typeof idx === 'number') at = idx;
+    else at = prev.idx;
+    const b = { t: Date.now(), tries: (prev.tries || 0) + 1, list: prev.list.slice(), idx: prev.idx, done: prev.done };
+    if (at >= 0 && at < n && b.list.indexOf(at) < 0) b.list.push(at);
+    b.list.sort((x, y) => x - y);
+    let next = 0;
+    while (next < n && b.list.indexOf(next) >= 0) next++;
+    b.idx = next;
+    b.done = b.list.length >= n ? 1 : 0;
     en.blocks[missionId] = b;
     en.last = Date.now();
     save('en-block');
     return b;
   }
+
+  /* 그림 힌트 ON/OFF 같은 화면 설정 — 학습 기록과 분리해 저장합니다 */
+  function enSetUi(patch) {
+    const en = enState();
+    en.ui = Object.assign({ pic: true, t: 0 }, en.ui || {}, patch || {}, { t: Date.now() });
+    save('en-ui');
+    return en.ui;
+  }
+
+  function enUi() { return enState().ui; }
 
   /* ---------------- 병합 ---------------- */
   function mergeLatest(a, b) {
@@ -341,10 +395,19 @@
     en.sight.last = Math.max(en.sight.last || 0, (r.sight && r.sight.last) || 0);
     const blocks = Object.assign({}, en.blocks, r.blocks || {});
     Object.keys(blocks).forEach(k => {
-      const a = en.blocks[k] || {}, b = (r.blocks || {})[k] || {};
-      blocks[k] = { t: Math.max(a.t || 0, b.t || 0), tries: Math.max(a.tries || 0, b.tries || 0), done: (a.done || b.done) ? 1 : 0 };
+      const a = normalizeBlock(en.blocks[k], k), b = normalizeBlock((r.blocks || {})[k], k);
+      const list = [...new Set(a.list.concat(b.list))].sort((x, y) => x - y);
+      const total = blockTotal(k);
+      let idx = 0;
+      while (idx < total && list.indexOf(idx) >= 0) idx++;
+      blocks[k] = {
+        t: Math.max(a.t || 0, b.t || 0), tries: Math.max(a.tries || 0, b.tries || 0),
+        list: list, idx: idx, done: list.length >= total ? 1 : 0
+      };
     });
     en.blocks = blocks;
+    const ua = en.ui || {}, ub = r.ui || {};
+    en.ui = Object.assign({ pic: true, t: 0 }, ua, (ub.t || 0) > (ua.t || 0) ? ub : {});
     const qa = en.quiz.q || {}, qb = (r.quiz && r.quiz.q) || {};
     const qm = {};
     [...new Set([...Object.keys(qa), ...Object.keys(qb)])].forEach(id => {
@@ -419,7 +482,7 @@
     addDrawing, removeDrawing, applyRemote, mergeStates,
     isEmptyState,
     en: enState, enRec, enDueOf, enDueList, enSchedule, enWordDone, enSightDone,
-    enQuizResult, enBlockDone, SRS_DAYS: SRS_STEPS,
+    enQuizResult, enBlockDone, enSetUi, enUi, normalizeBlock, blockTotal, SRS_DAYS: SRS_STEPS,
     hasLocalChange() { return changed; },
     wasCleared() { return cleared; },
     onChange(fn) { listeners.push(fn); },

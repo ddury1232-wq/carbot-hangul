@@ -204,6 +204,8 @@
         <p class="hint-line" id="enStepIntro"></p>
 
         <h2 class="sec-title">🔤 영어 암호 단어 <small id="enWordCount"></small></h2>
+        <div class="en-units" id="enUnitChips"></div>
+        <p class="hint-line" id="enUnitIntro"></p>
         <div class="en-words" id="enWordGrid"></div>
 
         <h2 class="sec-title">📕 카봇 영어 출동 미션 <small>⚡ 4개마다 1개 열림</small></h2>
@@ -286,14 +288,17 @@
           <div class="reader-block" id="enReaderBlock">
             <div class="rb-head">
               <b>🧩 문장 블록 맞추기</b>
+              <span class="rb-progress" id="enBlockProgress">0 / 6문장</span>
               <button class="icon-btn rb-hear" id="enBtnBlockHear">🔊 문장 듣기</button>
             </div>
-            <p class="rb-hint" id="enBlockHint">단어를 순서대로 눌러 문장을 만들어요</p>
+            <div class="rb-steps" id="enBlockSteps"></div>
+            <p class="rb-hint" id="enBlockHint"><b id="enBlockNowLabel">1번 문장</b><span id="enBlockHintText"> · 낱말을 순서대로 눌러 문장을 만들어요</span></p>
             <div class="rb-target" id="enBlockTarget"></div>
             <div class="rb-bank" id="enBlockBank"></div>
             <div class="rb-foot">
               <span class="rb-status" id="enBlockStatus"></span>
               <button class="icon-btn rb-reset" id="enBtnBlockReset">↺ 처음부터</button>
+              <button class="icon-btn rb-next" id="enBtnBlockNext" disabled>다음 문장 ›</button>
             </div>
           </div>
         </div>
@@ -313,10 +318,14 @@
 
         <div id="enQuizPlay">
           <div class="quiz-rounds" id="enQuizRounds"></div>
+          <div class="quiz-units" id="enQuizUnits"></div>
           <div class="card quiz-card">
             <div class="quiz-head">
               <span class="quiz-tag" id="enQuizRound">짝 소리</span>
               <span class="quiz-step" id="enQuizProgress">1 / 8</span>
+            </div>
+            <div class="quiz-pic-row">
+              <button class="quiz-pic on" id="enBtnQuizPic" aria-pressed="true">🖼️ 그림 힌트 <b>ON</b></button>
             </div>
             <div class="meter"><div class="meter-fill" id="enQuizBar"></div><span id="enQuizBarText"></span></div>
             <button class="quiz-play" id="enBtnQuizPlay"><span>🔊</span><b>다시 듣기</b></button>
@@ -358,6 +367,8 @@
           </div>
           <div class="sh-badge"><b id="enSightDone">0</b><span>/ <i id="enSightTotal">0</i></span></div>
         </div>
+        <div class="sight-levels" id="enSightLevels"></div>
+        <p class="hint-line" id="enSightLevelNote"></p>
         <div class="sight-grid" id="enSightGrid"></div>
         <p class="tiny-note">한 번 익힌 낱말은 1·3·7·14·30일 뒤에 복습으로 다시 만나요.</p>
       </div>

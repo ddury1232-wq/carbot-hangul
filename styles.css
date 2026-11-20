@@ -482,12 +482,10 @@ img[src*="carbots/cb09"],img[src*="carbots/cb1"]{mix-blend-mode:normal}
 .rb-bank-word{background:#fff6dc;border:2px solid #ffe08a;border-radius:12px;padding:7px 11px;font-size:15px;font-weight:700;
   color:#8a5b00;cursor:pointer;font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif}
 .rb-bank-word:active{transform:scale(.96)}
-.rb-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
-.rb-status{font-size:11.5px;font-weight:700;color:#1a8f66;min-height:16px}
+.rb-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}.rb-status{font-size:11.5px;font-weight:700;color:#1a8f66;min-height:16px}
 .rb-reset{padding:6px 10px;font-size:11.5px;border-radius:12px}
 
-/* 복습 탭 — 한글/영어 전환 */
-.rv-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+/* 복습 탭 — 한글/영어 전환 */.rv-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .rv-btns .btn{padding:12px 14px;font-size:13.5px;flex:1 1 44%}
 .rv-switch{display:flex;gap:6px;margin:0 2px 10px}
 .rv-sw{flex:1;border:2px solid #e2eefb;background:#fff;border-radius:14px;padding:9px 6px;font-size:12px;font-weight:700;
@@ -502,3 +500,55 @@ img[src*="carbots/cb09"],img[src*="carbots/cb1"]{mix-blend-mode:normal}
   .quiz-choice{min-height:110px}
   .quiz-choice b{font-size:22px}
 }
+
+/* ---------- 유닛 탭 (단어 묶음 탐색) ---------- */
+.en-units{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
+.en-unit{flex:0 0 auto;display:flex;align-items:center;gap:5px;border:2px solid #e2eefb;background:#fff;
+  border-radius:14px;padding:7px 10px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+  cursor:pointer;white-space:nowrap}
+.en-unit .eu-emoji{font-size:13px}
+.en-unit b{font-size:11.5px;letter-spacing:-.3px;color:var(--ink)}
+.en-unit .eu-count{font-size:10px;font-weight:800;color:#9db4c7;background:#f2f8ff;border-radius:8px;padding:1px 5px}
+.en-unit.active{background:var(--blue);border-color:var(--blue)}
+.en-unit.active b,.en-unit.active .eu-count{color:#fff}
+.en-unit.active .eu-count{background:rgba(255,255,255,.22)}
+.en-unit:active{transform:scale(.97)}
+
+/* ---------- 듣고 고르기: 그림 힌트 토글 · 유닛 탭 ---------- */
+.quiz-units{display:flex;gap:6px;overflow-x:auto;padding:0 2px 10px}
+.qu{flex:0 0 auto;border:2px solid #e2eefb;background:#fff;border-radius:12px;padding:6px 10px;
+  font-family:inherit;font-size:11px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
+.qu.active{background:#eaf4ff;border-color:#9ccdf5;color:var(--blue-deep)}
+.quiz-pic-row{display:flex;justify-content:flex-end;margin:-2px 0 8px}
+.quiz-pic{display:inline-flex;align-items:center;gap:5px;border:2px solid #e2eefb;background:#fff;
+  border-radius:999px;padding:6px 11px;font-family:inherit;font-size:11.5px;font-weight:700;color:#8aa7bd;cursor:pointer}
+.quiz-pic b{font-size:11.5px;font-weight:900;color:#8aa7bd}
+.quiz-pic.on{background:#fff6dc;border-color:#ffe08a;color:#a86a00}
+.quiz-pic.on b{color:#a86a00}
+.quiz-pic:active{transform:scale(.96)}
+.quiz-choices.no-pic .qc-emoji{display:none}
+.quiz-choices.no-pic .quiz-choice{min-height:64px}
+.quiz-choices.no-pic .quiz-choice b{font-size:21px}
+
+/* ---------- 사이트 워드 레벨 탭 ---------- */
+.sight-levels{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px}
+.sl{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:2px solid #e2eefb;
+  background:#fff;border-radius:14px;padding:7px 10px;font-family:inherit;cursor:pointer;min-width:62px}
+.sl em{font-style:normal;font-size:9px;font-weight:800;color:#9db4c7;letter-spacing:.4px}
+.sl b{font-size:11.5px;color:var(--ink);letter-spacing:-.3px}
+.sl span{font-size:9.5px;font-weight:800;color:#9db4c7}
+.sl.active{background:var(--blue);border-color:var(--blue)}
+.sl.active em,.sl.active b,.sl.active span{color:#fff}
+.sl:active{transform:scale(.97)}
+
+/* ---------- 문장 블록: 문장 번호 탭 ---------- */
+.rb-progress{font-size:11px;font-weight:800;color:#c68b12;background:#fff6dc;border-radius:10px;padding:3px 8px}
+.rb-steps{display:flex;gap:5px;margin:8px 0 4px;flex-wrap:wrap}
+.rbs{width:32px;height:32px;border-radius:10px;border:2px solid #d8ecfb;background:#fff;color:#9db4c7;
+  font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.rbs.done{background:#eafaf1;border-color:#8fe0b8;color:#1a8f66}
+.rbs.now{border-color:var(--blue);color:var(--blue-deep);box-shadow:0 3px 8px rgba(47,134,216,.18)}
+.rbs.done.now{background:#dff7ea}
+.rb-next{padding:6px 10px;font-size:11.5px;border-radius:12px}
+.rb-next:disabled{opacity:.45}
+.rb-hint b{color:var(--blue-deep)}

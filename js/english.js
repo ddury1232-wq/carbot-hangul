@@ -8,8 +8,7 @@
   const $ = U.$;
 
   const E = {
-    step: 's1',
-    word: null, stepNo: 1, steps: 3, mode: 'words', strokesCount: 0,
+    step: 's1', unit: {}, word: null, stepNo: 1, steps: 3, mode: 'words', strokesCount: 0,
     strokes: [], cur: null, drawing: false,
     canvas: null, ctx: null, guideOn: true, passed: false,
     w: 0, h: 0, dpr: 1, fs: 60, baseY: 0, startX: 0, adv: 0,
@@ -67,6 +66,17 @@
   }
   function wordDone(id) { const r = enState().words[id]; return !!(r && r.done); }
   function stepWords(step) { return EN_WORDS.filter(w => w.step === step); }
+  function stepUnits(step) { return EN_UNITS.filter(u => u.step === step); }
+  function unitWords(u) { return u ? EN_WORDS.filter(w => w.u === u.id) : []; }
+  /* 지금 보고 있는 유닛 — 단계를 처음 열면 첫 유닛부터 */
+  function curUnit() {
+    const list = stepUnits(E.step);
+    if (!list.length) return null;
+    const id = E.unit[E.step];
+    return list.find(u => u.id === id) || list[0];
+  }
+  function unitCores(u) { return unitWords(u).filter(w => wordDone(w.id)).length; }
+  function blockRec(missionId) { return Store.normalizeBlock((enState().blocks || {})[missionId], missionId); }
   function stepCores(step) { return stepWords(step).filter(w => wordDone(w.id)).length; }
   function totalCores() { return EN_WORDS.filter(w => wordDone(w.id)).length; }
   function stepMissions(step) { return EN_MISSIONS.filter(m => m.step === step); }
@@ -108,6 +118,7 @@
   function render() {
     renderHero();
     renderSteps();
+    renderUnits();
     renderWordGrid();
     renderMissions();
     if (window.EnglishExtras) { try { EnglishExtras.renderHome(); } catch (e) { console.warn(e); } }
@@ -138,21 +149,45 @@
         '<small>' + s.sub + '</small>' +
         '<span class="es-bar"><i style="width:' + Math.round(done / words.length * 100) + '%"></i></span>' +
         '<em class="es-core">⚡ ' + done + ' / ' + words.length + '</em></span>';
-      btn.addEventListener('click', () => { U.click(); E.step = s.id; render(); });
+      btn.addEventListener('click', () => { U.click(); E.step = s.id; if (!E.unit[s.id]) E.unit[s.id] = (stepUnits(s.id)[0] || {}).id; render(); });
       box.appendChild(btn);
     });
     const intro = $('#enStepIntro');
     if (intro) {
       const s = EN_STEPS.find(x => x.id === E.step);
-      intro.textContent = s.intro;
+      intro.textContent = s ? s.intro : '';
     }
+  }
+
+  /* 단계 안의 음가 유닛 탭 — 1,000개가 한 화면에 쏟아지지 않게 묶어 봅니다 */
+  function renderUnits() {
+    const box = $('#enUnitChips'); if (!box) return;
+    const units = stepUnits(E.step);
+    const cur = curUnit();
+    box.innerHTML = '';
+    units.forEach(u => {
+      const total = u.count || unitWords(u).length;
+      const done = unitCores(u);
+      const b = U.el('button', 'en-unit' + (cur && cur.id === u.id ? ' active' : ''));
+      b.dataset.unit = u.id;
+      b.innerHTML = '<span class="eu-emoji">' + u.emoji + '</span>' +
+        '<b>' + u.title + '</b>' +
+        '<span class="eu-count">' + done + '/' + total + '</span>';
+      b.addEventListener('click', () => {
+        U.click(); E.unit[E.step] = u.id; renderUnits(); renderWordGrid();
+      });
+      box.appendChild(b);
+    });
   }
 
   function renderWordGrid() {
     const grid = $('#enWordGrid'); if (!grid) return;
-    const words = stepWords(E.step);
+    const unit = curUnit();
+    const words = unit ? unitWords(unit) : stepWords(E.step);
     const head = $('#enWordCount');
-    if (head) head.textContent = words.length + '개 중 ' + stepCores(E.step) + '개 완료';
+    if (head) head.textContent = (unit ? unit.title + ' · ' : '') + words.length + '낱말 중 ' + words.filter(w => wordDone(w.id)).length + '개 완료';
+    const sub = $('#enUnitIntro');
+    if (sub && unit) sub.textContent = unit.sub + ' · ' + (unit.count || words.length) + '낱말';
     grid.innerHTML = '';
     words.forEach(w => {
       const done = wordDone(w.id);
@@ -178,14 +213,17 @@
     mts.forEach((m, i) => {
       const unlocked = cores >= EN_CORES_PER_MISSION * (i + 1);
       const read = missionRead(m.id);
-      const blk = ((Store.state.en && Store.state.en.blocks) || {})[m.id];
+      const blk = blockRec(m.id);
       const blockDone = !!(blk && blk.done);
+      const blockList = (blk && blk.list) || [];
+      const blockTotal = (EN_BLOCKS_BY_MISSION[m.id] || []).length || 6;
       const c = CARBOT_BY_ID[m.carbot] || { name: '카봇', img: '' };
       const item = U.el('button', 'en-mission' + (unlocked ? '' : ' locked') + (read ? ' read' : ''));
       item.innerHTML =
         '<img src="' + c.img + '" alt="' + c.name + '" loading="lazy">' +
         '<span class="m-body"><b>' + m.title + '</b><small>' + m.ko + ' · ' + c.name + '</small>' +
-        '<span class="m-meta">' + (unlocked ? (read ? '⭐ 읽음' : '📖 열림 · 6줄 리더스') + (blockDone ? ' · 🧩 문장 완성' : '') : '⚡ ' + missionNeed(m) + '개 더 모으면 열려요') + '</span></span>' +
+        '<span class="m-meta">' + (unlocked ? (read ? '⭐ 읽음' : '📖 열림 · 6줄 리더스') : '⚡ ' + missionNeed(m) + '개 더 모으면 열려요') +
+        (blockDone ? ' · 🧩 문장 완성' : (blockList.length ? ' · 🧩 ' + blockList.length + '/' + blockTotal : '')) + '</span></span>' +
         '<span class="m-go">' + (unlocked ? '›' : '🔒') + '</span>';
       item.addEventListener('click', () => {
         if (!unlocked) { U.toast('⚡ 에너지 코어 ' + missionNeed(m) + '개를 더 모아요!'); return; }
@@ -496,9 +534,12 @@
     const cores = stepCores(w.step);
     const justUnlocked = stepM.filter((m, i) => EN_CORES_PER_MISSION * (i + 1) === cores);
     const remain = EN_CORES_PER_MISSION - (cores % EN_CORES_PER_MISSION);
+    const allOpen = stepM.length > 0 && stepM.every(m => missionUnlocked(m));
     $('#enRewardSub').textContent = justUnlocked.length
       ? '⚡ 에너지 코어 ' + EN_CORES_PER_MISSION + '개 완성! 새 리더스 「' + justUnlocked[0].title + '」가 열렸어요!'
-      : '⚡ 에너지 코어 +1 · 다음 리더스까지 ' + (remain === EN_CORES_PER_MISSION ? 0 : remain) + '개';
+      : allOpen
+        ? '⚡ 에너지 코어 +1 · 이 단계 리더스를 모두 열었어요!'
+        : '⚡ 에너지 코어 +1 · 다음 리더스까지 ' + remain + '개';
     U.fanfare();
     speakEN(w.w + '! Great job!', { silent: true });
     const go = $('#enBtnGoReader');

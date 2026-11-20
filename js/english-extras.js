@@ -1,9 +1,9 @@
 /* =====================================================================
    영어 추가 4종
    ① 🎧 소리 듣고 고르기 — 원어민 발음(en-US)을 듣고 알맞은 그림·단어 카드 고르기
-      (cap↔cape, pin↔pine, hop↔hope, cub↔cube 짝 + 단계별 단어 + 사이트 워드)
-   ② ⭐ 사이트 워드 — 리더스 빈출 낱말 카드(듣기 · 따라쓰기 · 찾기 놀이)
-   ③ 🧩 리더스 문장 블록 맞추기 — 리더스 화면 아래 미니 미션
+      (최소대립쌍 cap↔cape … + 단계·유닛별 단어 + 사이트 워드) · 🖼️ 그림 힌트 ON/OFF
+   ② ⭐ 사이트 워드 — 리더스 빈출 낱말 카드(레벨별 탐색 · 듣기 · 따라쓰기 · 찾기 놀이)
+   ③ 🧩 리더스 문장 블록 맞추기 — 리더스의 6문장을 1번 → 2번 → … 순서로
    ④ 🔁 영어 누적 복습 — 한글과 같은 1·3·7·14·30일 간격(복습 탭과 연동)
    진행도는 모두 state.en 안에 저장되고 실시간 동기화·내보내기에 함께 실려요.
    ===================================================================== */
@@ -14,9 +14,11 @@
   const SCREENS = ['enPractice', 'enReward', 'enReader', 'enQuiz', 'enSight'];
 
   /* 듣고 고르기 퀴즈 상태 */
-  const Q = { round: null, list: [], idx: 0, right: 0, wrong: 0, answered: false, cur: null, review: false, timer: 0, token: 0 };
+  const Q = { round: 'pair', unit: '', list: [], idx: 0, right: 0, wrong: 0, answered: false, cur: null, review: false, timer: 0, token: 0 };
   /* 문장 블록 상태 */
-  const BLK = { mission: null, tokens: [], picked: [], bank: [], solved: false };
+  const BLK = { mission: null, idx: 0, total: 0, tokens: [], picked: [], bank: [], solved: false };
+  /* 사이트 워드 레벨 */
+  const S = { level: 'sw1' };
 
   /* ------------------------------------------------------------------
      도우미
@@ -70,7 +72,13 @@
   }
   function blockStats() {
     const b = (Store.state.en && Store.state.en.blocks) || {};
-    return { done: EN_MISSIONS.filter(m => b[m.id] && b[m.id].done).length, total: EN_MISSIONS.length };
+    let done = 0, sentences = 0;
+    EN_MISSIONS.forEach(m => {
+      const r = Store.normalizeBlock(b[m.id], m.id);
+      if (r.done) done++;
+      sentences += (r.list || []).length;
+    });
+    return { done: done, total: EN_MISSIONS.length, sentences: sentences, sentencesTotal: EN_TOTAL_SENTENCES };
   }
   function enDue() { return Store.enDueList(); }
 
@@ -83,8 +91,10 @@
     if (ql) ql.textContent = qs.solved ? '맞힌 문제 ' + qs.solved + ' / ' + qs.total : '단·장모음 구별 퀴즈';
     const sl = $('#enSightStat');
     if (sl) sl.textContent = ss.done ? ss.done + ' / ' + ss.total + ' 낱말 익혔어요' : '리더스 빈출 낱말 카드';
-    const bl = $('#enBlockStat');   // 설정 화면 없음 → 리더스 문장 완성 표시용(있을 때만)
+    const bl = $('#enBlockStat');
     if (bl) bl.textContent = bs.done + ' / ' + bs.total;
+    const bt = $('#enBlockSentenceStat');
+    if (bt) bt.textContent = bs.sentences + ' / ' + bs.sentencesTotal + '문장';
     renderToday();
   }
 
@@ -123,8 +133,13 @@
     return shuffle(pool).slice(0, n);
   }
 
-  function buildQuestions(roundId) {
-    const pool = EN_QUIZ.filter(q => q.round === roundId);
+  function buildQuestions(roundId, unitId) {
+    let pool = EN_QUIZ.filter(q => q.round === roundId);
+    if (unitId) pool = pool.filter(q => q.unit === unitId);
+    else if (roundId !== 'pair' && roundId !== 'sight') {
+      // '전체'는 유닛 문제 + 단계 섞기 문제를 모두 씁니다
+      pool = EN_QUIZ.filter(q => q.round === roundId);
+    }
     return shuffle(pool).slice(0, Math.min(8, pool.length));
   }
 
@@ -145,9 +160,23 @@
     });
   }
 
+  /* 그림 힌트 ON/OFF — state.en.ui.pic 에 저장되어 다음에도 그대로 유지됩니다 */
+  function picOn() {
+    const ui = (Store.enUi && Store.enUi()) || {};
+    return ui.pic !== false;
+  }
+  function renderPicToggle() {
+    const b = $('#enBtnQuizPic');
+    if (!b) return;
+    const on = picOn();
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.innerHTML = '🖼️ 그림 힌트 <b>' + (on ? 'ON' : 'OFF') + '</b>';
+  }
+
   function renderRounds() {
     const box = $('#enQuizRounds'); if (!box) return;
-    if (Q.round === 'review') { box.classList.add('hidden'); return; }
+    if (Q.round === 'review') { box.classList.add('hidden'); renderQuizUnits(); return; }
     box.classList.remove('hidden');
     box.innerHTML = '';
     EN_QUIZ_ROUNDS.forEach(r => {
@@ -157,13 +186,37 @@
       b.addEventListener('click', () => { U.click(); openQuiz(r.id); });
       box.appendChild(b);
     });
+    renderQuizUnits();
+  }
+
+  /* 단계 안의 유닛 탭 — 600문제를 유닛별로 골라 풀 수 있어요 */
+  function renderQuizUnits() {
+    const box = $('#enQuizUnits'); if (!box) return;
+    const step = Q.round;
+    if (step === 'review' || step === 'pair' || step === 'sight') { box.classList.add('hidden'); box.innerHTML = ''; return; }
+    const units = EN_UNITS.filter(u => u.step === step && EN_QUIZ.some(q => q.unit === u.id));
+    if (!units.length) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+    const all = U.el('button', 'qu' + (Q.unit ? '' : ' active'), '전체');
+    all.dataset.unit = '';
+    all.addEventListener('click', () => { U.click(); Q.unit = ''; openQuiz(step); });
+    box.appendChild(all);
+    units.forEach(u => {
+      const b = U.el('button', 'qu' + (Q.unit === u.id ? ' active' : ''), u.title);
+      b.dataset.unit = u.id;
+      b.addEventListener('click', () => { U.click(); Q.unit = u.id; openQuiz(step); });
+      box.appendChild(b);
+    });
   }
 
   function openQuiz(roundId, opt) {
     const o = opt || {};
     Q.review = roundId === 'review';
     Q.round = roundId;
-    Q.list = o.list || (roundId === 'review' ? reviewQuestions(o.startId) : buildQuestions(roundId));
+    if (!Q.review) Q.unit = (o.unit != null) ? o.unit : Q.unit || '';
+    if (Q.review) Q.unit = '';
+    Q.list = o.list || (roundId === 'review' ? reviewQuestions(o.startId) : buildQuestions(roundId, Q.unit));
     if (!Q.list.length) { U.toast('이 코너에는 아직 문제가 없어요'); return; }
     Q.idx = 0; Q.right = 0; Q.wrong = 0; Q.answered = false; Q.cur = null;
     showOnly('enQuiz');
@@ -171,6 +224,7 @@
     if (play) play.classList.remove('hidden');
     if (res) res.classList.add('hidden');
     renderRounds();
+    renderPicToggle();
     renderQuestion();
   }
 
@@ -185,9 +239,10 @@
     Q.answered = false;
     Q.token++;
     const r = EN_QUIZ_ROUNDS.find(x => x.id === q.round);
+    const unit = (EN_UNIT_BY_ID && EN_UNIT_BY_ID[q.unit]) || null;
     const tag = $('#enQuizRound');
     if (tag) tag.textContent = Q.round === 'review' ? '🔁 오늘의 영어 복습'
-      : (r ? r.emoji + ' ' + r.tag + ' · ' + r.title : '');
+      : (r ? r.emoji + ' ' + r.tag + ' · ' + (unit ? unit.title : r.title) : '');
     const pr = $('#enQuizProgress');
     if (pr) pr.textContent = (Q.idx + 1) + ' / ' + Q.list.length;
     const bar = $('#enQuizBar');
@@ -196,12 +251,14 @@
     if (bt) bt.textContent = '맞힌 문제 ' + Q.right;
     const fb = $('#enQuizFeedback'); if (fb) fb.textContent = '';
     const hint = $('#enQuizHint');
-    if (hint) hint.textContent = '🔊 소리를 잘 듣고 알맞은 카드를 골라요';
+    if (hint) hint.textContent = picOn()
+      ? '🔊 소리를 잘 듣고 알맞은 카드를 골라요'
+      : '🔊 소리와 글자만 보고 골라요 (그림 힌트 OFF)';
 
     const box = $('#enQuizChoices');
     if (box) {
       box.innerHTML = '';
-      box.className = 'quiz-choices' + (q.choices.length === 2 ? ' two' : '');
+      box.className = 'quiz-choices' + (q.choices.length === 2 ? ' two' : '') + (picOn() ? '' : ' no-pic');
       q.choices.forEach(id => {
         const w = info(id, q.kind);
         const b = U.el('button', 'quiz-choice');
@@ -216,6 +273,7 @@
       nx.disabled = true;
       nx.textContent = (Q.idx + 1 >= Q.list.length) ? '결과 보기 🎉' : '다음 문제 ›';
     }
+    renderPicToggle();
     playCurrent();
   }
 
@@ -288,26 +346,42 @@
   }
 
   /* ==================================================================
-     ② 사이트 워드 코너
+     ② 사이트 워드 코너 — 레벨(묶음) 탭
      ================================================================== */
   function openSight() {
     showOnly('enSight');
     renderSight();
   }
 
+  function renderSightLevels() {
+    const box = $('#enSightLevels'); if (!box) return;
+    box.innerHTML = '';
+    EN_SIGHT_LEVELS.forEach(l => {
+      const done = EN_SIGHT.filter(s => s.level === l.id && ((Store.state.en.sight.words || {})[s.id] || {}).done).length;
+      const b = U.el('button', 'sl' + (S.level === l.id ? ' active' : ''));
+      b.dataset.level = l.id;
+      b.innerHTML = '<em>' + l.tag + '</em><b>' + l.title + '</b><span>' + done + '/' + (l.count || 0) + '</span>';
+      b.addEventListener('click', () => { U.click(); S.level = l.id; renderSight(); });
+      box.appendChild(b);
+    });
+  }
+
   function renderSight() {
     const st = sightStats();
     const dn = $('#enSightDone'); if (dn) dn.textContent = st.done;
     const tt = $('#enSightTotal'); if (tt) tt.textContent = st.total;
+    renderSightLevels();
     const grid = $('#enSightGrid'); if (!grid) return;
     grid.innerHTML = '';
     const words = (Store.state.en && Store.state.en.sight && Store.state.en.sight.words) || {};
-    EN_SIGHT.forEach(s => {
+    const list = EN_SIGHT.filter(s => s.level === S.level);
+    EN_SIGHT.forEach(s => { /* keep reference for older browsers */ });
+    list.forEach(s => {
       const rec = words[s.id] || {};
       const card = U.el('div', 'sight-card' + (rec.done ? ' done' : ''));
       const main = U.el('button', 'sc-main');
       main.dataset.w = s.id;
-      main.innerHTML = '<span class="sc-emoji">' + s.emoji + '</span>' +
+      main.innerHTML = '<span class="sc-emoji">' + (s.emoji || '⭐') + '</span>' +
         '<b>' + s.w + '</b><small>' + s.ko + '</small><em>' + s.ex + '</em>' +
         (rec.done ? '<i class="sc-star">⭐</i>' : '');
       main.addEventListener('click', () => {
@@ -322,37 +396,79 @@
       card.appendChild(tr);
       grid.appendChild(card);
     });
+    const note = $('#enSightLevelNote');
+    if (note) {
+      const lv = EN_SIGHT_LEVELS.find(x => x.id === S.level) || {};
+      note.textContent = (lv.tag || '') + ' ' + (lv.title || '') + ' · ' + (lv.sub || '') + ' · ' + list.length + '낱말';
+    }
   }
 
   /* ==================================================================
-     ③ 리더스 문장 블록 맞추기
+     ③ 리더스 문장 블록 맞추기 — 6문장을 1번 → 2번 → … 순서로
      ================================================================== */
+  function missionBlockRec(id) { return Store.normalizeBlock((Store.state.en.blocks || {})[id], id); }
+
+  /* 힌트 문장 — 문장 번호(<b id="enBlockNowLabel">)는 그대로 두고 뒤 문구만 바꿉니다 */
+  function setBlockHint(text) {
+    const el = $('#enBlockHintText');
+    if (el) el.textContent = text;
+  }
+
   function renderBlock(missionId) {
     const wrap = $('#enReaderBlock'); if (!wrap) return;
-    const b = EN_BLOCK_BY_ID[missionId];
-    if (!b) { wrap.classList.add('hidden'); return; }
+    const list = EN_BLOCKS_BY_MISSION[missionId];
+    if (!list || !list.length) { wrap.classList.add('hidden'); return; }
     wrap.classList.remove('hidden');
     BLK.mission = missionId;
+    BLK.total = list.length;
+    const rec = missionBlockRec(missionId);
+    BLK.idx = rec.done ? 0 : Math.min(rec.idx, list.length - 1);
+    loadBlock();
+  }
+
+  function loadBlock() {
+    const list = EN_BLOCKS_BY_MISSION[BLK.mission] || [];
+    const b = list[BLK.idx];
+    if (!b) return;
+    const rec = missionBlockRec(BLK.mission);
     BLK.tokens = b.words.map((w, i) => ({ i: i, w: w }));
-    BLK.solved = false;
-    BLK.picked = [];
-    BLK.bank = shuffle(BLK.tokens);
-    const rec = (Store.state.en && Store.state.en.blocks && Store.state.en.blocks[missionId]) || null;
-    if (rec && rec.done) {
+    BLK.solved = (rec.list || []).indexOf(BLK.idx) >= 0;
+    if (BLK.solved) {
       BLK.picked = BLK.tokens.map(t => t.i);
       BLK.bank = [];
-      BLK.solved = true;
+    } else {
+      BLK.picked = [];
+      BLK.bank = shuffle(BLK.tokens);
     }
-    const hint = $('#enBlockHint');
-    if (hint) hint.textContent = BLK.solved
-      ? '이미 맞춘 문장이에요. 다시 맞춰 볼 수도 있어요!'
-      : '낱말을 순서대로 눌러 문장을 만들어요';
+    renderBlockSteps();
     renderBlockParts();
+  }
+
+  function renderBlockSteps() {
+    const row = $('#enBlockSteps'); if (!row) return;
+    const rec = missionBlockRec(BLK.mission);
+    const total = BLK.total || 6;
+    row.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const done = (rec.list || []).indexOf(i) >= 0;
+      const b = U.el('button', 'rbs' + (done ? ' done' : '') + (i === BLK.idx ? ' now' : ''));
+      b.dataset.i = String(i);
+      b.textContent = done ? '✓' : String(i + 1);
+      b.title = (i + 1) + '번 문장';
+      b.addEventListener('click', () => {
+        U.click(); BLK.idx = i; loadBlock();
+      });
+      row.appendChild(b);
+    }
+    const pr = $('#enBlockProgress');
+    if (pr) pr.textContent = (rec.list || []).length + ' / ' + total + '문장';
   }
 
   function renderBlockParts() {
     const tgt = $('#enBlockTarget'), bank = $('#enBlockBank');
     if (!tgt || !bank) return;
+    const label = $('#enBlockNowLabel');
+    if (label) label.textContent = (BLK.idx + 1) + '번 문장';
     tgt.innerHTML = ''; bank.innerHTML = '';
     BLK.tokens.forEach((t, i) => {
       const idx = BLK.picked[i];
@@ -390,6 +506,13 @@
       st.textContent = BLK.solved ? '✅ 완성!' :
         (BLK.picked.length ? BLK.picked.length + ' / ' + BLK.tokens.length + ' 낱말' : '');
     }
+    const nx = $('#enBtnBlockNext');
+    if (nx) {
+      const rec = missionBlockRec(BLK.mission);
+      const next = (rec.list || []).length < (BLK.total || 6);
+      nx.disabled = !next;
+      nx.textContent = next ? '다음 문장 ›' : '6문장 완성 🎉';
+    }
   }
 
   function checkBlock(auto) {
@@ -399,12 +522,13 @@
     const st = $('#enBlockStatus');
     if (made === goal) {
       BLK.solved = true;
-      Store.enBlockDone(BLK.mission, true);
+      Store.enBlockDone(BLK.mission, BLK.idx, BLK.total);
       if (st) st.textContent = '🎉 정확해요!';
-      const hint = $('#enBlockHint');
-      if (hint) hint.textContent = '문장을 다 맞췄어요! 소리 내어 한 번 읽어 봐요';
+      setBlockHint(' · 문장을 다 맞췄어요! 소리 내어 한 번 읽어 봐요');
       U.fanfare();
-      speak((EN_BLOCK_BY_ID[BLK.mission] || {}).sentence || '', { rate: 0.8 });
+      speak((EN_BLOCKS_BY_MISSION[BLK.mission] || [])[BLK.idx] ? EN_BLOCKS_BY_MISSION[BLK.mission][BLK.idx].sentence : '', { rate: 0.8 });
+      renderBlockSteps();
+      renderBlockParts();
       English.render();
     } else {
       if (st) st.textContent = '순서가 조금 달라요. 낱말을 눌러 빼고 다시 해 봐요';
@@ -412,13 +536,28 @@
     }
   }
 
+  function nextBlock() {
+    const rec = missionBlockRec(BLK.mission);
+    const total = BLK.total || 6;
+    if ((rec.list || []).length >= total) { U.toast('🎉 이 리더스의 6문장을 다 맞췄어요!'); return; }
+    let next = rec.idx;
+    if (next >= total || (rec.list || []).indexOf(next) >= 0) {
+      next = 0; while (next < total && (rec.list || []).indexOf(next) >= 0) next++;
+    }
+    if (next >= total) { U.toast('🎉 6문장을 모두 맞췄어요!'); return; }
+    BLK.idx = next;
+    setBlockHint(' · 낱말을 순서대로 눌러 문장을 만들어요');
+    loadBlock();
+  }
+
   function resetBlock() {
     if (!BLK.mission) return;
+    const rec = missionBlockRec(BLK.mission);
+    if ((rec.list || []).indexOf(BLK.idx) >= 0) { U.toast('이미 맞춘 문장이에요 👍'); return; }
     BLK.solved = false;
     BLK.picked = [];
     BLK.bank = shuffle(BLK.tokens);
-    const hint = $('#enBlockHint');
-    if (hint) hint.textContent = '낱말을 순서대로 눌러 문장을 만들어요';
+    setBlockHint(' · 낱말을 순서대로 눌러 문장을 만들어요');
     renderBlockParts();
   }
 
@@ -463,6 +602,19 @@
     on('#enBtnQuizReplay', () => { playCurrent(); });
     on('#enBtnQuizPlay', () => { playCurrent(); });
     on('#enBtnQuizNext', nextQuestion);
+    on('#enBtnQuizPic', () => {
+      U.click();
+      const on = !picOn();
+      Store.enSetUi({ pic: on });
+      renderPicToggle();
+      const box = $('#enQuizChoices');
+      if (box) box.classList.toggle('no-pic', !on);
+      const hint = $('#enQuizHint');
+      if (hint) hint.textContent = on
+        ? '🔊 소리를 잘 듣고 알맞은 카드를 골라요'
+        : '🔊 소리와 글자만 보고 골라요 (그림 힌트 OFF)';
+      U.toast(on ? '🖼️ 그림 힌트 ON' : '🖼️ 그림 힌트 OFF · 소리와 글자로만!', 1200);
+    });
     on('#enBtnQuizSkip', () => {
       if (!Q.cur) return;
       if (!Q.answered) { Q.answered = true; Q.wrong++; }
@@ -479,10 +631,11 @@
     on('#enBtnSightFind', () => { U.click(); openQuiz('sight'); });
 
     on('#enBtnBlockHear', () => {
-      const b = BLK.mission && EN_BLOCK_BY_ID[BLK.mission];
-      if (b) speak(b.sentence, { rate: 0.8 });
+      const list = BLK.mission && EN_BLOCKS_BY_MISSION[BLK.mission];
+      if (list && list[BLK.idx]) speak(list[BLK.idx].sentence, { rate: 0.8 });
     });
     on('#enBtnBlockReset', () => { U.click(); resetBlock(); });
+    on('#enBtnBlockNext', () => { U.click(); nextBlock(); });
   }
 
   Store.onChange(() => {
@@ -496,6 +649,7 @@
   window.EnglishExtras = {
     renderHome, renderToday, renderBlock, renderSight, openSight, openQuiz,
     startReview, reviewInfo, isOpen, backHome, bind,
-    quizStats, sightStats, blockStats, Q, BLK
+    quizStats, sightStats, blockStats, Q, BLK, S,
+    picOn, setPic: (on) => { Store.enSetUi({ pic: on }); renderPicToggle(); }
   };
 })();
