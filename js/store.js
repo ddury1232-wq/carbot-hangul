@@ -25,6 +25,33 @@
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
+  /* ------------------------------------------------------------------
+     업로드 안전장치용 판정
+     - isEmptyState: 학습 기록·그림·영어 진행·통계가 하나도 없는 '빈 초기 상태'
+       (기본 설정값만 있는 상태. 설정만 바꾼 경우도 내용은 비어 있다고 봅니다.)
+     - hasLocalChange: 이 기기에서 실제로 학습·그림·설정을 바꾼 적이 있는지
+     - wasCleared: 사용자가 [기록 모두 지우기]로 직접 비운 상태인지
+     ------------------------------------------------------------------ */
+  function isEmptyState(s) {
+    if (!s || typeof s !== 'object') return true;
+    const chars = s.chars || {};
+    for (const id in chars) {
+      const r = chars[id] || {};
+      if ((r.steps || 0) > 0 || r.done || (r.chips || 0) > 0 || r.summoned ||
+          (r.dex || 0) > 0 || (r.first || 0) > 0 || (r.t || 0) > 0 ||
+          ((r.srs && (r.srs.box || 0)) > 0)) return false;
+    }
+    if ((s.gallery || []).length > 0) return false;
+    const en = s.en || {};
+    if (Object.keys(en.words || {}).length || Object.keys(en.missions || {}).length) return false;
+    const st = s.stats || {};
+    if ((st.writes || 0) > 0 || Object.keys(st.days || {}).length) return false;
+    return true;
+  }
+
+  let changed = false;   // 실제 학습·그림·설정 수정이 있었는지
+  let cleared = false;   // 사용자가 직접 [기록 모두 지우기]를 했는지
+
   let state = load();
   const listeners = [];
 
@@ -75,6 +102,8 @@
   function emit(reason) { listeners.forEach(fn => { try { fn(state, reason); } catch (e) { console.warn(e); } }); }
 
   function save(reason) {
+    changed = true;
+    if (reason === 'reset') cleared = true;
     saveLocal();
     emit(reason || 'save');
     pushRemote();
@@ -230,6 +259,9 @@
     SRS_STEPS,
     save, rec, learned, learnedList, dueList, scheduleNext, completeStep, summon,
     addDrawing, removeDrawing, applyRemote, mergeStates,
+    isEmptyState,
+    hasLocalChange() { return changed; },
+    wasCleared() { return cleared; },
     onChange(fn) { listeners.push(fn); },
     settings() { return state.settings; },
     setSettings(patch) {
