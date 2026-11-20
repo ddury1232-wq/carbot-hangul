@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#dff2ff">
+<meta name="robots" content="noindex, nofollow">
+<title>카봇 한글 쓰기 · 카봇 시계 · 카봇 영어 출동 미션</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-emoji" aria-hidden="true">🤖</span>
+      <div>
+        <h1>카봇 한글 쓰기</h1>
+        <p class="brand-sub" id="dateLine">오늘도 카봇과 함께!</p>
+      </div>
+    </div>
+    <div class="topright">
+      <span class="chip-count" id="chipCount" title="카봇칩">🧊 <b>0</b></span>
+      <span class="sync-dot" id="syncDot" title="동기화 상태">●</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ================= HOME ================= -->
+    <section class="page" id="page-home">
+      <div class="card hero">
+        <div class="hero-text">
+          <p class="hero-hi" id="heroHi">안녕, 친구!</p>
+          <p class="hero-sub" id="heroSub">오늘은 어떤 카봇 이름을 써 볼까?</p>
+        </div>
+        <div class="hero-badge" id="heroBadge">🎯</div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><b id="statLearned">0</b><span>배운 카봇</span></div>
+        <div class="stat"><b id="statChips">0</b><span>카봇칩</span></div>
+        <div class="stat"><b id="statDex">0</b><span>도감 등록</span></div>
+        <div class="stat"><b id="statStreak">0</b><span>연속일</span></div>
+      </div>
+
+      <button class="card big-cta" id="btnStartToday">
+        <span class="cta-emoji">✏️</span>
+        <span class="cta-text"><b>오늘의 쓰기 시작!</b><small id="todayPickName">추천 카봇을 준비하고 있어요…</small></span>
+        <span class="cta-arrow">›</span>
+      </button>
+
+      <button class="card big-cta soft" id="btnReviewNow">
+        <span class="cta-emoji">🔁</span>
+        <span class="cta-text"><b>오늘의 복습</b><small id="reviewCount">복습할 카봇이 없어요</small></span>
+        <span class="cta-arrow">›</span>
+      </button>
+
+      <h2 class="sec-title">🧊 최근에 쓴 카봇</h2>
+      <div class="mini-row" id="recentRow"></div>
+    </section>
+
+    <!-- ================= WRITE / SELECT ================= -->
+    <section class="page" id="page-write">
+      <div id="writeSelect">
+        <div class="level-row" id="levelRow">
+          <button class="lvl active" data-level="0">전체</button>
+          <button class="lvl" data-level="1">1단계 🌱</button>
+          <button class="lvl" data-level="2">2단계 🌟</button>
+          <button class="lvl" data-level="3">3단계 🔥</button>
+        </div>
+        <div class="filter-row">
+          <select id="seasonFilter" class="select">
+            <option value="all">모든 시즌</option>
+          </select>
+          <input id="searchInput" class="search" type="search" inputmode="search" placeholder="🔍 카봇 이름 찾기" autocomplete="off">
+        </div>
+        <p class="hint-line" id="listHint">받침 없는 짧은 이름부터 시작해요.</p>
+        <div class="char-grid" id="charGrid"></div>
+      </div>
+
+      <div id="practice" class="hidden">
+        <div class="practice-top">
+          <button class="icon-btn" id="btnBackToList">‹ 목록</button>
+          <div class="practice-name" id="practiceName">카봇</div>
+          <button class="icon-btn" id="btnPracticeMenu">⋯</button>
+        </div>
+
+        <div class="card prac-card">
+          <div class="prac-head">
+            <img id="pracImg" class="prac-img" alt="">
+            <div class="prac-meta">
+              <div class="prac-title" id="pracTitle">이름</div>
+              <div class="prac-tags" id="pracTags"></div>
+              <div class="prac-desc" id="pracDesc"></div>
+            </div>
+          </div>
+
+          <div class="step-row" id="stepRow">
+            <div class="step active" data-step="1"><b>1</b><span>따라쓰기</span></div>
+            <div class="step" data-step="2"><b>2</b><span>혼자쓰기</span></div>
+            <div class="step" data-step="3"><b>3</b><span>또 쓰기</span></div>
+          </div>
+
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="writeCanvas"></canvas>
+            <div class="canvas-tip" id="canvasTip">점선을 따라 천천히 써 보세요</div>
+          </div>
+
+          <div class="tool-row">
+            <button class="tool" id="toolUndo">↩️ 되돌리기</button>
+            <button class="tool" id="toolClear">🧽 전체 지우기</button>
+            <button class="tool" id="toolGuide">👀 가이드</button>
+            <button class="tool" id="toolHint">💡 획 힌트</button>
+          </div>
+          <div class="meter"><div class="meter-fill" id="meterFill"></div><span id="meterText">0%</span></div>
+        </div>
+
+        <div class="prac-actions">
+          <button class="btn ghost" id="btnSkip">이번엔 넘어갈래</button>
+          <button class="btn primary" id="btnNextStep">다음 ›</button>
+        </div>
+      </div>
+
+      <div id="reward" class="hidden">
+        <div class="reward-card">
+          <div class="reward-burst">✨</div>
+          <img id="rewardImg" class="reward-img" alt="">
+          <h2 id="rewardTitle">카봇칩 획득!</h2>
+          <p id="rewardText">정말 잘 썼어요!</p>
+          <div class="chip-big">🧊 <b id="rewardChipName">카봇칩</b></div>
+          <div class="reward-actions">
+            <button class="btn primary" id="btnGoWatch">⌚ 시계에 끼우기</button>
+            <button class="btn ghost" id="btnAnother">✏️ 다른 카봇 쓰기</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= WATCH & DEX ================= -->
+    <section class="page" id="page-watch">
+      <div class="watch-stage">
+        <div class="watch">
+          <div class="watch-band"></div>
+          <div class="watch-face">
+            <div class="watch-slot" id="watchSlot">🧊</div>
+            <div class="watch-screen" id="watchScreen">칩을 끼워 주세요</div>
+          </div>
+        </div>
+        <div class="watch-summon" id="watchSummon"></div>
+      </div>
+
+      <h2 class="sec-title">🧊 내 카봇칩 <small id="chipTotal"></small></h2>
+      <div class="chip-grid" id="chipGrid"></div>
+
+      <h2 class="sec-title">📖 카봇 도감 <small id="dexTotal"></small></h2>
+      <div class="dex-tools">
+        <select id="dexSeason" class="select"></select>
+        <label class="switch"><input type="checkbox" id="dexOnlyOwned"> 모은 것만</label>
+      </div>
+      <div class="dex-grid" id="dexGrid"></div>
+    </section>
+
+    <!-- ================= ENGLISH ================= -->
+    <section class="page" id="page-english">
+      <div id="enHome">
+        <div class="card en-hero">
+          <div class="en-hero-head">
+            <div>
+              <p class="en-kicker">HELLO CARBOT · ENGLISH MISSION</p>
+              <h2>⚡ 카봇 영어 출동 미션</h2>
+              <p class="en-sub">영어 암호(파닉스 단어)를 쓰면 <b>에너지 코어</b>가 차고,<br>코어가 모이면 카봇 <b>영어 리더스</b>(6줄)가 열려요!</p>
+            </div>
+            <div class="core-badge"><span>⚡</span><b id="enCoreTotal">0</b><small>코어</small></div>
+          </div>
+          <div class="en-total">
+            <div class="en-total-bar"><i id="enTotalBar"></i></div>
+            <div class="en-total-text"><span id="enTotalText">0 / 0 단어 완료</span><span>⭐ 리더스 <b id="enMissionTotal">0</b></span></div>
+          </div>
+        </div>
+
+        <h2 class="sec-title">🎯 파닉스 단계</h2>
+        <div class="en-steps" id="enStepChips"></div>
+        <p class="hint-line" id="enStepIntro"></p>
+
+        <h2 class="sec-title">🔤 영어 암호 단어 <small id="enWordCount"></small></h2>
+        <div class="en-words" id="enWordGrid"></div>
+
+        <h2 class="sec-title">📕 카봇 영어 출동 미션 <small>⚡ 4개마다 1개 열림</small></h2>
+        <div class="en-missions" id="enMissionList"></div>
+      </div>
+
+      <div id="enPractice" class="hidden">
+        <div class="practice-top">
+          <button class="icon-btn" id="enBtnBack">‹ 목록</button>
+          <div class="practice-name" id="enPracticeName">word</div>
+          <button class="icon-btn" id="enBtnSpeak">🔊 발음</button>
+        </div>
+
+        <div class="card prac-card">
+          <div class="en-word-head">
+            <div>
+              <div class="en-word-title" id="enWordTitle">cat</div>
+              <div class="en-word-ko" id="enWordKo">🐱 고양이</div>
+            </div>
+            <span class="en-focus" id="enWordFocus">단모음 a</span>
+          </div>
+
+          <div class="step-row" id="enStepRow">
+            <div class="step active" data-step="1"><b>1</b><span>따라쓰기</span></div>
+            <div class="step" data-step="2"><b>2</b><span>혼자쓰기</span></div>
+            <div class="step" data-step="3"><b>3</b><span>또 쓰기</span></div>
+          </div>
+
+          <div class="canvas-wrap en-canvas-wrap" id="enCanvasWrap">
+            <canvas id="enCanvas"></canvas>
+            <div class="canvas-tip" id="enCanvasTip">점선 글자를 따라 천천히 써 보세요</div>
+          </div>
+
+          <div class="tool-row">
+            <button class="tool" id="enToolUndo">↩️ 되돌리기</button>
+            <button class="tool" id="enToolClear">🧽 전체 지우기</button>
+            <button class="tool" id="enToolGuide">👀 4선 가이드</button>
+          </div>
+          <div class="meter"><div class="meter-fill" id="enMeterFill"></div><span id="enMeterText">0%</span></div>
+        </div>
+
+        <div class="prac-actions">
+          <button class="btn ghost" id="enBtnSkip">이번엔 넘어갈래</button>
+          <button class="btn primary" id="enBtnNext">다음 ›</button>
+        </div>
+      </div>
+
+      <div id="enReward" class="hidden">
+        <div class="reward-card">
+          <div class="reward-burst">⚡</div>
+          <p class="en-kicker center">CODE COMPLETE · 영어 암호 완성!</p>
+          <h2 id="enRewardWord">cat</h2>
+          <p id="enRewardKo">🐱 고양이</p>
+          <div class="core-award"><span>⚡ 에너지 코어</span><b id="enRewardCores">0</b></div>
+          <p class="en-reward-sub" id="enRewardSub"></p>
+          <div class="reward-actions">
+            <button class="btn primary" id="enBtnGoReader">📕 리더스 보기</button>
+            <button class="btn ghost" id="enBtnAnother">🔤 다른 단어</button>
+            <button class="btn ghost" id="enBtnNextWord">▶ 다음 단어</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="enReader" class="hidden">
+        <div class="practice-top">
+          <button class="icon-btn" id="enBtnReaderBack">‹ 미션</button>
+          <div class="practice-name" id="enReaderTag">READER</div>
+          <button class="icon-btn" id="enBtnReadAll">▶ 전체 읽기</button>
+        </div>
+        <div class="card reader-card">
+          <div class="reader-head">
+            <img id="enReaderImg" alt="" class="reader-img">
+            <div>
+              <h2 id="enReaderTitle">Mission</h2>
+              <p id="enReaderKo">미션</p>
+            </div>
+          </div>
+          <div class="reader-lines" id="enReaderLines"></div>
+          <div class="reader-words hidden" id="enReaderWords"></div>
+        </div>
+        <div class="prac-actions reader-actions">
+          <button class="btn ghost" id="enBtnGloss">💡 단어 뜻</button>
+          <button class="btn ghost" id="enBtnStopRead">⏹ 멈추기</button>
+          <button class="btn primary" id="enBtnReadDone">다 읽었어요! ⭐</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= REVIEW ================= -->
+    <section class="page" id="page-review">
+      <div class="card review-hero">
+        <p class="rh-emoji">🔁</p>
+        <h2>오늘의 복습</h2>
+        <p id="reviewHeroText">잊지 않게 다시 만나요!</p>
+        <button class="btn primary" id="btnStartReview">복습 시작</button>
+      </div>
+      <div class="review-list" id="reviewList"></div>
+      <p class="tiny-note">1일 → 3일 → 7일 → 14일 → 30일 간격으로 다시 만나요.</p>
+    </section>
+
+    <!-- ================= STORY ================= -->
+    <section class="page" id="page-story">
+      <div class="story-tools">
+        <button class="btn primary" id="btnNewStory">📖 새 이야기 만들기</button>
+        <button class="btn ghost" id="btnReadStory">🔊 읽어주기</button>
+        <button class="btn ghost" id="btnStopStory">⏹ 멈추기</button>
+      </div>
+      <div class="story-paper" id="storyPaper">
+        <h2 id="storyTitle">카봇 이야기</h2>
+        <div id="storyBody" class="story-body">
+          <p>이야기를 만들면 여기에 나와요.</p>
+        </div>
+      </div>
+      <p class="tiny-note">내가 모은 카봇들이 이야기 속에 나타나요. 큰 소리로 따라 읽어 보세요!</p>
+    </section>
+
+    <!-- ================= SKETCH ================= -->
+    <section class="page" id="page-sketch">
+      <div class="sketch-tools">
+        <div class="color-row" id="colorRow"></div>
+        <div class="brush-row">
+          <button class="brush active" data-size="6">가는펜</button>
+          <button class="brush" data-size="14">굵은펜</button>
+          <button class="brush" data-size="30">붓</button>
+        </div>
+      </div>
+      <div class="paper-row">
+        <button class="paper active" data-paper="plain">무지</button>
+        <button class="paper" data-paper="line">줄노트</button>
+        <button class="paper" data-paper="grid">격자</button>
+        <button class="paper" data-paper="space">우주</button>
+        <button class="paper" data-paper="dino">공룡</button>
+        <button class="paper" data-paper="friend">내 카봇</button>
+      </div>
+      <div class="sketch-wrap" id="sketchWrap">
+        <canvas id="sketchCanvas"></canvas>
+      </div>
+      <div class="tool-row">
+        <button class="tool" id="skErase">🧽 지우개</button>
+        <button class="tool" id="skUndo">↩️ 되돌리기</button>
+        <button class="tool" id="skClear">🗑 전체 지우기</button>
+        <button class="tool" id="skSave">💾 저장</button>
+        <button class="tool" id="skShare">📤 공유</button>
+      </div>
+      <h2 class="sec-title">🖼 내 그림 보관함 <small id="galleryCount"></small></h2>
+      <div class="gallery" id="gallery"></div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section class="page" id="page-settings">
+      <div class="card">
+        <h2 class="sec-title in-card">👦 아이 정보</h2>
+        <label class="field"><span>이름</span><input id="setChildName" type="text" placeholder="친구"></label>
+        <label class="switch"><input type="checkbox" id="setSound"> 효과음</label>
+        <label class="switch"><input type="checkbox" id="setVoice" checked> 이야기 읽어주기 목소리</label>
+      </div>
+
+      <div class="card">
+        <h2 class="sec-title in-card">☁️ 가족 실시간 연동 (Firebase)</h2>
+        <p class="tiny-note">Firebase 프로젝트를 만들고 Realtime Database를 만들면, 태블릿과 폰이 같은 가족 코드로 자동으로 이어져요. 비워 두면 이 기기에만 저장돼요.</p>
+        <label class="field"><span>databaseURL</span><input id="setDbUrl" type="text" placeholder="https://...-default-rtdb.firebaseio.com"></label>
+        <label class="field"><span>apiKey</span><input id="setApiKey" type="text" placeholder="AIza..."></label>
+        <label class="field"><span>projectId</span><input id="setProjectId" type="text" placeholder="my-carbot-app"></label>
+        <label class="field"><span>appId</span><input id="setAppId" type="text" placeholder="1:...:web:..."></label>
+        <label class="field"><span>가족 코드</span><input id="setFamilyCode" type="text" placeholder="예: CARBOT7" maxlength="16"></label>
+        <div class="btn-row">
+          <button class="btn primary" id="btnSyncConnect">연결하기</button>
+          <button class="btn ghost" id="btnSyncDisconnect">연결 끄기</button>
+        </div>
+        <p class="sync-status" id="syncStatusText">상태: 이 기기에만 저장 중</p>
+      </div>
+
+      <div class="card">
+        <h2 class="sec-title in-card">📦 기기끼리 코드로 옮기기</h2>
+        <div class="btn-row">
+          <button class="btn ghost" id="btnExport">내보내기 코드</button>
+          <button class="btn ghost" id="btnShowQr">QR 보기</button>
+          <button class="btn ghost" id="btnImport">불러오기</button>
+        </div>
+        <div id="qrBox" class="qr-box hidden"><canvas id="qrCanvas"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2 class="sec-title in-card">🧹 관리</h2>
+        <button class="btn danger" id="btnReset">기록 모두 지우기</button>
+      </div>
+      <p class="tiny-note center">카봇 캐릭터 이미지 ⓒ 초이락컨텐츠컴퍼니 · 가족이 함께 쓰는 개인용 학습 페이지예요.</p>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-tab="home"><span>🏠</span><b>홈</b></button>
+    <button class="tab" data-tab="write"><span>✏️</span><b>쓰기</b></button>
+    <button class="tab" data-tab="english"><span>📕</span><b>영어</b></button>
+    <button class="tab" data-tab="watch"><span>⌚</span><b>시계</b></button>
+    <button class="tab" data-tab="review"><span>🔁</span><b>복습</b></button>
+    <button class="tab" data-tab="story"><span>📖</span><b>이야기</b></button>
+    <button class="tab" data-tab="sketch"><span>🎨</span><b>스케치</b></button>
+    <button class="tab" data-tab="settings"><span>⚙️</span><b>설정</b></button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal hidden" id="modal"><div class="modal-card" id="modalCard"></div></div>
+
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/english-data.js"></script>
+<script src="js/util.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/store.js"></script>
+<script src="js/writing.js"></script>
+<script src="js/english.js"></script>
+<script src="js/watch.js"></script>
+<script src="js/review.js"></script>
+<script src="js/story.js"></script>
+<script src="js/sketch.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
