@@ -382,3 +382,123 @@ img[src*="carbots/cb09"],img[src*="carbots/cb1"]{mix-blend-mode:normal}
 .en-step .es-body b{font-size:12px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
 .en-step .es-body em.es-core{margin-top:1px}
 .en-step .es-body{min-width:0}
+
+/* =====================================================================
+   영어 추가 4종 — 듣고 고르기 · 사이트 워드 · 문장 블록 · 영어 복습
+   ===================================================================== */
+/* 오늘의 영어 복습 */
+.en-today{padding:14px}
+.et-head{display:flex;align-items:center;gap:10px}
+.et-emoji{font-size:24px}
+.et-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.et-text b{font-size:14.5px;letter-spacing:-.3px}
+.et-text small{font-size:11.5px;color:var(--ink-soft)}
+.et-btn{flex:0 0 auto;padding:10px 14px;font-size:13px;border-radius:14px}
+.et-btn:disabled{background:#eef6fc;color:#a9c1d2;box-shadow:none}
+.et-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.et-chip{display:inline-flex;align-items:center;gap:4px;background:#f3f9ff;border:2px solid #e6f2fb;border-radius:12px;
+  padding:5px 9px;font-size:12px;color:var(--ink-soft);cursor:pointer;font-family:inherit}
+.et-chip b{font-size:13.5px;color:var(--blue-deep);font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif;letter-spacing:.3px}
+.et-chip:active{transform:scale(.96)}
+.et-more{font-size:11px;color:var(--ink-soft);align-self:center;padding:0 4px}
+
+/* 두 코너 카드 */
+.en-corners{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.en-corner{display:flex;align-items:center;gap:9px;background:#fff;border:2px solid #e8f2fb;border-radius:20px;
+  padding:12px 10px;text-align:left;cursor:pointer;font-family:inherit;color:var(--ink);box-shadow:var(--shadow)}
+.en-corner:active{transform:scale(.98)}
+.en-corner .ec-emoji{font-size:22px}
+.en-corner .ec-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.en-corner .ec-body b{font-size:12.5px;letter-spacing:-.3px}
+.en-corner .ec-body small{font-size:10px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.en-corner .ec-go{font-size:18px;color:#b5cde0}
+
+/* 듣고 고르기 퀴즈 */
+.quiz-rounds{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px}
+.qr{flex:0 0 auto;display:flex;align-items:center;gap:5px;border:2px solid #e2eefb;background:#fff;border-radius:14px;
+  padding:8px 11px;font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;font-family:inherit;white-space:nowrap}
+.qr span{font-size:14px}
+.qr.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.quiz-card{padding:16px}
+.quiz-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.quiz-tag{font-size:11px;font-weight:800;color:var(--blue-deep);background:#eaf4ff;border-radius:10px;padding:4px 9px}
+.quiz-step{font-size:11.5px;font-weight:800;color:var(--ink-soft)}
+.quiz-play{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin:12px 0 4px;
+  background:linear-gradient(135deg,#fff8e2,#ffe9a8);border:2px solid #ffe08a;border-radius:20px;padding:16px;
+  font-family:inherit;font-size:15px;font-weight:800;color:#a86a00;cursor:pointer}
+.quiz-play span{font-size:26px;animation:pulseBtn 1.6s ease-in-out infinite}
+.quiz-play:active{transform:scale(.98)}
+.quiz-hint{font-size:12px;color:var(--ink-soft);text-align:center;margin:6px 0 10px}
+.quiz-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.quiz-choices.two{grid-template-columns:1fr 1fr}
+.quiz-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:92px;
+  background:#fff;border:2px solid #e8f2fb;border-radius:18px;padding:10px 6px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.quiz-choice:active{transform:scale(.97)}
+.quiz-choice .qc-emoji{font-size:26px;line-height:1.1}
+.quiz-choice b{font-size:19px;font-weight:900;letter-spacing:.4px;font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif}
+.quiz-choice.right{background:#eafaf1;border-color:#66d6a5;box-shadow:0 6px 16px rgba(63,192,138,.22)}
+.quiz-choice.wrong{background:#fff0f0;border-color:#ffb3b3;animation:shakeX .35s ease}
+@keyframes shakeX{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.quiz-feedback{font-size:12.5px;font-weight:700;color:var(--ink-soft);text-align:center;margin:10px 0 0;min-height:18px}
+.quiz-stars{display:flex;gap:6px;justify-content:center;font-size:26px;margin:6px 0 4px;opacity:.35}
+.quiz-stars .on{opacity:1;filter:drop-shadow(0 4px 8px rgba(214,160,20,.35))}
+
+/* 사이트 워드 */
+.sight-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px}
+.sh-text{display:flex;flex-direction:column;gap:3px}
+.sh-text b{font-size:14.5px;letter-spacing:-.3px}
+.sh-text small{font-size:11.5px;color:var(--ink-soft)}
+.sh-badge{flex:0 0 auto;display:flex;align-items:baseline;gap:2px;background:#f3f0ff;border:2px solid #e0d9ff;
+  border-radius:16px;padding:8px 12px;color:#6a53c0}
+.sh-badge b{font-size:20px}
+.sh-badge span{font-size:11.5px;font-style:normal;font-weight:700}
+.sh-badge i{font-style:normal}
+.sight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px}
+.sight-card{position:relative;background:#fff;border:2px solid #fff;border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.sight-card.done{background:linear-gradient(180deg,#ffffff,#f4fffb);border-color:#b6f0d8}
+.sc-main{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%;border:none;background:transparent;
+  padding:10px 6px 8px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.sc-main:active{transform:scale(.97)}
+.sc-main .sc-emoji{font-size:19px}
+.sc-main b{font-size:17px;font-weight:900;letter-spacing:.4px;font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif}
+.sc-main small{font-size:10.5px;color:var(--ink-soft)}
+.sc-main em{font-style:normal;font-size:9.5px;color:#9db4c7;margin-top:2px;text-align:center;line-height:1.25}
+.sc-star{position:absolute;top:5px;right:7px;font-size:12px;font-style:normal}
+.sc-trace{width:100%;border:none;border-top:1px dashed #e6f2fb;background:#f8fcff;padding:6px 0;font-size:13px;cursor:pointer}
+.sight-card.done .sc-trace{background:#f2fdf8}
+
+/* 리더스 문장 블록 */
+.reader-block{margin-top:12px;padding-top:12px;border-top:1px dashed #e2eefb}
+.rb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rb-head b{font-size:13.5px;letter-spacing:-.2px}
+.rb-hear{padding:6px 10px;font-size:11.5px;border-radius:12px}
+.rb-hint{font-size:11.5px;color:var(--ink-soft);margin:6px 0 8px}
+.rb-target{display:flex;flex-wrap:wrap;gap:6px;min-height:44px;background:#f8fcff;border:2px dashed #d8ecfb;
+  border-radius:16px;padding:8px}
+.rb-slot{min-width:58px;min-height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;
+  border:2px dashed #d3e8f7;background:#fff;font-size:15px;color:var(--ink);font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif}
+.rb-slot.filled{background:#f2fbff;border:2px solid #bfe0f7;color:var(--ink);font-weight:700;padding:3px 9px;cursor:pointer}
+.rb-bank{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rb-bank-word{background:#fff6dc;border:2px solid #ffe08a;border-radius:12px;padding:7px 11px;font-size:15px;font-weight:700;
+  color:#8a5b00;cursor:pointer;font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif}
+.rb-bank-word:active{transform:scale(.96)}
+.rb-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.rb-status{font-size:11.5px;font-weight:700;color:#1a8f66;min-height:16px}
+.rb-reset{padding:6px 10px;font-size:11.5px;border-radius:12px}
+
+/* 복습 탭 — 한글/영어 전환 */
+.rv-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.rv-btns .btn{padding:12px 14px;font-size:13.5px;flex:1 1 44%}
+.rv-switch{display:flex;gap:6px;margin:0 2px 10px}
+.rv-sw{flex:1;border:2px solid #e2eefb;background:#fff;border-radius:14px;padding:9px 6px;font-size:12px;font-weight:700;
+  color:var(--ink-soft);cursor:pointer;font-family:inherit}
+.rv-sw.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.rv-group{font-size:11.5px;font-weight:800;color:var(--ink-soft);margin:8px 4px 2px;letter-spacing:-.2px}
+.rv .rv-em{width:46px;height:46px;display:grid;place-items:center;font-size:22px;background:#f3f9ff;border-radius:14px;flex:0 0 auto}
+.rv.en-item .t b{font-family:"Comic Sans MS","Segoe UI",Arial,sans-serif;letter-spacing:.3px}
+@media (min-width:720px){
+  .en-corners{grid-template-columns:1fr 1fr}
+  .sight-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}
+  .quiz-choice{min-height:110px}
+  .quiz-choice b{font-size:22px}
+}

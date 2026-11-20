@@ -7,6 +7,35 @@
   const KEY = 'carbot-hangul-state-v3';
   const SRS_STEPS = [1, 3, 7, 14, 30];
 
+  /* 영어 진행도 기본값
+     words  : 파닉스 단어 쓰기(코어)
+     missions: 리더스 읽음
+     quiz   : 소리 듣고 고르기 — 문제별 정답 기록 {t, ok, tries}
+     sight  : 사이트 워드 {t, done, steps, srs}
+     blocks : 리더스 문장 블록 완성 {t, done, tries}
+     words·sight 기록의 srs = {box, due, last} (1·3·7·14·30일 복습 일정) */
+  function defaultEn() {
+    return {
+      words: {}, missions: {}, last: 0,
+      quiz: { q: {}, last: 0 },
+      sight: { words: {}, last: 0 },
+      blocks: {}
+    };
+  }
+
+  function normalizeEn(en) {
+    const e = Object.assign(defaultEn(), en || {});
+    e.words = e.words || {};
+    e.missions = e.missions || {};
+    e.quiz = e.quiz || { q: {}, last: 0 };
+    e.quiz.q = e.quiz.q || {};
+    e.sight = e.sight || { words: {}, last: 0 };
+    e.sight.words = e.sight.words || {};
+    e.blocks = e.blocks || {};
+    e.last = e.last || 0;
+    return e;
+  }
+
   function defaultState() {
     return {
       v: 3,
@@ -18,7 +47,7 @@
       },
       chars: {},
       gallery: [],
-      en: { words: {}, missions: {}, last: 0 },
+      en: defaultEn(),
       stats: { writes: 0, days: {}, streak: 0, lastDay: '' }
     };
   }
@@ -44,6 +73,9 @@
     if ((s.gallery || []).length > 0) return false;
     const en = s.en || {};
     if (Object.keys(en.words || {}).length || Object.keys(en.missions || {}).length) return false;
+    if (Object.keys((en.quiz && en.quiz.q) || {}).length) return false;        // 음가 퀴즈
+    if (Object.keys((en.sight && en.sight.words) || {}).length) return false;  // 사이트 워드
+    if (Object.keys(en.blocks || {}).length) return false;                    // 문장 블록
     const st = s.stats || {};
     if ((st.writes || 0) > 0 || Object.keys(st.days || {}).length) return false;
     return true;
@@ -78,8 +110,7 @@
       // 내장된 Firebase 설정을 기본으로 쓰고, 저장된 값이 있으면 덮어쓰기
       s.settings.firebase = Object.assign({}, window.FIREBASE_CONFIG || {}, (s.settings.firebase || {}));
       s.chars = s.chars || {}; s.gallery = s.gallery || []; s.stats = Object.assign(d.stats, s.stats || {});
-      s.en = Object.assign({ words: {}, missions: {}, last: 0 }, s.en || {});
-      s.en.words = s.en.words || {}; s.en.missions = s.en.missions || {};
+      s.en = normalizeEn(s.en);
       return s;
     } catch (e) { console.warn('load fail', e); return defaultState(); }
   }
@@ -190,7 +221,142 @@
     save('gallery');
   }
 
+  /* ---------------- 영어 진행도 · 복습 일정(1·3·7·14·30일) ---------------- */
+  function enState() { state.en = normalizeEn(state.en); return state.en; }
+
+  // kind: 'words'(파닉스 단어) | 'sight'(사이트 워드)
+  function enRec(kind, id) {
+    const en = enState();
+    const map = kind === 'sight' ? en.sight.words : en.words;
+    if (!map[id]) map[id] = { t: 0, done: false, steps: 0, srs: { box: 0, due: 0, last: 0 } };
+    if (!map[id].srs) map[id].srs = { box: 0, due: 0, last: 0 };
+    return map[id];
+  }
+
+  // 복습 예정 시각. 예전 기록(srs 없음)은 마지막 학습 다음 날부터 복습
+  function enDueOf(r) {
+    if (!r || !r.done) return Infinity;
+    if (r.srs && r.srs.due) return r.srs.due;
+    return (r.t || 0) + 86400000;
+  }
+
+  // ok 가 false 면 간격을 늘리지 않고 내일 다시 만납니다
+  function enSchedule(kind, id, ok) {
+    const r = enRec(kind, id);
+    const prev = (r.srs && r.srs.box) || 0;
+    const box = ok === false ? Math.max(1, prev) : Math.min(SRS_STEPS.length, Math.max(1, prev + 1));
+    const now = Date.now();
+    r.srs = { box: box, last: now, due: now + SRS_STEPS[box - 1] * 86400000 };
+    r.t = now;
+    return r.srs;
+  }
+
+  function enDueList(now) {
+    const t = now || Date.now();
+    const en = enState();
+    const out = [];
+    ['words', 'sight'].forEach(kind => {
+      const map = kind === 'sight' ? en.sight.words : en.words;
+      Object.keys(map).forEach(id => {
+        const r = map[id];
+        if (!r || !r.done) return;
+        const due = enDueOf(r);
+        if (due <= t) out.push({ kind, id, rec: r, due, box: (r.srs && r.srs.box) || 1 });
+      });
+    });
+    return out.sort((a, b) => (a.due - b.due) || a.id.localeCompare(b.id));
+  }
+
+  function enWordDone(id, first) {
+    const r = enRec('words', id);
+    r.t = Date.now();
+    enState().last = Date.now();
+    if (first || r.done) enSchedule('words', id, true);
+    save('en');
+    return r;
+  }
+
+  function enSightDone(id) {
+    const r = enRec('sight', id);
+    const first = !r.done;
+    r.done = true;
+    r.steps = Math.max(3, r.steps || 0);
+    r.t = Date.now();
+    const en = enState();
+    en.sight.last = Date.now(); en.last = Date.now();
+    if (first) enSchedule('sight', id, true);
+    save('en-sight');
+    return r;
+  }
+
+  function enQuizResult(qid, ok) {
+    const en = enState();
+    const q = en.quiz.q[qid] || { t: 0, ok: 0, tries: 0 };
+    q.tries = (q.tries || 0) + 1;
+    if (ok) q.ok = (q.ok || 0) + 1;
+    q.t = Date.now();
+    en.quiz.q[qid] = q;
+    en.quiz.last = Date.now(); en.last = Date.now();
+    save('en-quiz');
+    return q;
+  }
+
+  function enBlockDone(missionId, done) {
+    const en = enState();
+    const b = en.blocks[missionId] || { t: 0, done: 0, tries: 0 };
+    b.tries = (b.tries || 0) + 1;
+    if (done) b.done = 1;
+    b.t = Date.now();
+    en.blocks[missionId] = b;
+    en.last = Date.now();
+    save('en-block');
+    return b;
+  }
+
   /* ---------------- 병합 ---------------- */
+  function mergeLatest(a, b) {
+    const out = Object.assign({}, a || {});
+    Object.keys(b || {}).forEach(id => {
+      const x = out[id], y = b[id];
+      if (!x) { out[id] = y; return; }
+      if (!y) return;
+      if ((y.t || 0) > (x.t || 0)) { out[id] = y; return; }
+      // 새로 쓴 시각은 예전이어도, 복습 일정이 더 최근이면 그 일정만 가져옵니다
+      const xs = x.srs, ys = y.srs;
+      if (ys && (!xs || (ys.last || 0) > (xs.last || 0))) out[id] = Object.assign({}, x, { srs: ys });
+    });
+    return out;
+  }
+
+  /* 영어 진행도 병합
+     - 파닉스 단어 · 사이트 워드 : 마지막으로 바뀐 시각(t) 최신 우선 (+ 더 최근 복습 일정 유지)
+     - 리더스 읽음 · 문장 블록 : 합집합(완성 기록은 지워지지 않음)
+     - 듣고 고르기 퀴즈 : 문제별로 맞힌 횟수(ok)·시도(tries)·최근 시각(t) 중 큰 값 */
+  function mergeEnProgress(outEn, remoteEn) {
+    const r = remoteEn || {};
+    const en = normalizeEn(outEn);
+    en.words = mergeLatest(en.words, r.words);
+    en.missions = Object.assign({}, en.missions, r.missions || {});
+    en.sight.words = mergeLatest(en.sight.words, (r.sight && r.sight.words) || {});
+    en.sight.last = Math.max(en.sight.last || 0, (r.sight && r.sight.last) || 0);
+    const blocks = Object.assign({}, en.blocks, r.blocks || {});
+    Object.keys(blocks).forEach(k => {
+      const a = en.blocks[k] || {}, b = (r.blocks || {})[k] || {};
+      blocks[k] = { t: Math.max(a.t || 0, b.t || 0), tries: Math.max(a.tries || 0, b.tries || 0), done: (a.done || b.done) ? 1 : 0 };
+    });
+    en.blocks = blocks;
+    const qa = en.quiz.q || {}, qb = (r.quiz && r.quiz.q) || {};
+    const qm = {};
+    [...new Set([...Object.keys(qa), ...Object.keys(qb)])].forEach(id => {
+      const a = qa[id] || {}, b = qb[id] || {};
+      qm[id] = { t: Math.max(a.t || 0, b.t || 0), ok: Math.max(a.ok || 0, b.ok || 0), tries: Math.max(a.tries || 0, b.tries || 0) };
+    });
+    en.quiz.q = qm;
+    en.quiz.last = Math.max(en.quiz.last || 0, (r.quiz && r.quiz.last) || 0);
+    en.last = Math.max(en.last || 0, r.last || 0);
+    return en;
+  }
+
   function mergeStates(local, remote) {
     if (!remote || typeof remote !== 'object') return local;
     const out = clone(local);
@@ -209,16 +375,8 @@
       if (!byId[g.id] || (g.ts || 0) > (byId[g.id].ts || 0)) byId[g.id] = g;
     });
     out.gallery = Object.values(byId).sort((a, b) => b.ts - a.ts).slice(0, 40);
-    // 영어 파닉스 진행도: 단어별 최신 시간 우선 + 리더스 읽음 합집합
-    out.en = out.en || { words: {}, missions: {}, last: 0 };
-    out.en.words = out.en.words || {};
-    Object.keys(remote.en && remote.en.words || {}).forEach(id => {
-      const a = out.en.words[id], b = (remote.en.words || {})[id];
-      if (!a) out.en.words[id] = b;
-      else if (b && (b.t || 0) > (a.t || 0)) out.en.words[id] = b;
-    });
-    out.en.missions = Object.assign({}, out.en.missions || {}, (remote.en && remote.en.missions) || {});
-    out.en.last = Math.max(out.en.last || 0, (remote.en && remote.en.last) || 0);
+    // 영어 진행도: 단어(최신 우선) + 리더스·문장 블록(합집합) + 사이트 워드 + 퀴즈
+    out.en = mergeEnProgress(out.en, remote.en);
     // 설정: 더 최근 것
     if ((remote.settings || {}).t > (out.settings.t || 0)) {
       out.settings = Object.assign({}, out.settings, remote.settings);
@@ -260,6 +418,8 @@
     save, rec, learned, learnedList, dueList, scheduleNext, completeStep, summon,
     addDrawing, removeDrawing, applyRemote, mergeStates,
     isEmptyState,
+    en: enState, enRec, enDueOf, enDueList, enSchedule, enWordDone, enSightDone,
+    enQuizResult, enBlockDone, SRS_DAYS: SRS_STEPS,
     hasLocalChange() { return changed; },
     wasCleared() { return cleared; },
     onChange(fn) { listeners.push(fn); },

@@ -439,3 +439,143 @@ window.EN_MISSIONS = [
 
 /* 미션 해금에 필요한 에너지 코어 수 */
 window.EN_CORES_PER_MISSION = 4;
+
+/* =====================================================================
+   사이트 워드 (Sight Words) — 6줄 리더스에 자주 나오는 필수 빈출 단어
+   통째로 익히는 말이라 뜻(ko)과 짧은 예시(ex)를 함께 보여 줍니다.
+   ===================================================================== */
+window.EN_SIGHT = [
+  { id: 'the',  w: 'the',  ko: '그',           emoji: '📖', ex: 'the sun' },
+  { id: 'is',   w: 'is',   ko: '~이에요',       emoji: '🟰', ex: 'he is big' },
+  { id: 'a',    w: 'a',    ko: '하나의',        emoji: '1️⃣', ex: 'a cat' },
+  { id: 'can',  w: 'can',  ko: '~할 수 있어요',  emoji: '💪', ex: 'I can go' },
+  { id: 'you',  w: 'you',  ko: '너',           emoji: '🫵', ex: 'you and me' },
+  { id: 'go',   w: 'go',   ko: '가다',          emoji: '🚦', ex: 'go, go, go!' },
+  { id: 'and',  w: 'and',  ko: '그리고',        emoji: '➕', ex: 'mom and dad' },
+  { id: 'with', w: 'with', ko: '~와 함께',      emoji: '🤝', ex: 'with my friend' },
+  { id: 'he',   w: 'he',   ko: '그는',          emoji: '👦', ex: 'he is here' },
+  { id: 'she',  w: 'she',  ko: '그녀는',        emoji: '👧', ex: 'she can see' },
+  { id: 'are',  w: 'are',  ko: '~이에요(여럿)',  emoji: '👨‍👩‍👧', ex: 'we are here' },
+  { id: 'they', w: 'they', ko: '그들은',        emoji: '👥', ex: 'they can go' },
+  { id: 'have', w: 'have', ko: '가지다',        emoji: '🤲', ex: 'I have a cat' },
+  { id: 'like', w: 'like', ko: '좋아하다',      emoji: '❤️', ex: 'I like cake' },
+  { id: 'see',  w: 'see',  ko: '보다',          emoji: '👀', ex: 'I see you' },
+  { id: 'look', w: 'look', ko: '쳐다보다',      emoji: '🔎', ex: 'look at me' },
+  { id: 'come', w: 'come', ko: '오다',          emoji: '🚶', ex: 'come here' },
+  { id: 'here', w: 'here', ko: '여기',          emoji: '📍', ex: 'I am here' },
+  { id: 'this', w: 'this', ko: '이것',          emoji: '👉', ex: 'this is my hat' },
+  { id: 'that', w: 'that', ko: '저것',          emoji: '👈', ex: 'that is a dog' },
+  { id: 'my',   w: 'my',   ko: '나의',          emoji: '🙋', ex: 'my cat' },
+  { id: 'we',   w: 'we',   ko: '우리는',        emoji: '🧑‍🤝‍🧑', ex: 'we can go' },
+  { id: 'it',   w: 'it',   ko: '그것',          emoji: '📦', ex: 'it is big' },
+  { id: 'to',   w: 'to',   ko: '~로',           emoji: '➡️', ex: 'go to the park' }
+];
+window.EN_SIGHT_BY_ID = Object.fromEntries(EN_SIGHT.map(w => [w.id, w]));
+
+/* =====================================================================
+   소리 듣고 고르기 퀴즈 — 원어민 발음(en-US)을 듣고 알맞은 카드 고르기
+   · round 'pair'  : 단모음 ↔ 장모음 최소대립쌍(cap↔cape, pin↔pine, hop↔hope, cub↔cube)
+   · round 's1'~'s4': 단계별 단어 구별
+   · round 'sight' : 사이트 워드 찾기(아래에서 자동 생성)
+   답(ans)은 단어 id, choices 는 같은 문제 카드에 놓이는 단어 id 목록입니다.
+   ===================================================================== */
+window.EN_QUIZ_ROUNDS = [
+  { id: 'pair',  tag: '짝 소리', title: '단모음 ↔ 장모음', sub: 'cap vs cape',  emoji: '🅰️', size: 2 },
+  { id: 's1',    tag: 'Step 1',  title: '단모음 · 장모음',  sub: 'cat · cake',   emoji: '🔤', size: 4 },
+  { id: 's2',    tag: 'Step 2',  title: '자음군 · 이중자음', sub: 'ship · shop',  emoji: '🔠', size: 4 },
+  { id: 's3',    tag: 'Step 3',  title: '이중모음 · 응용',  sub: 'rain · boat',  emoji: '🌈', size: 4 },
+  { id: 's4',    tag: 'Step 4',  title: '심화 · 긴 단어',   sub: 'street · scream', emoji: '🚀', size: 4 },
+  { id: 'sight', tag: '사이트 워드', title: '찾기 놀이', sub: 'the · is · can', emoji: '⭐', size: 4 }
+];
+
+window.EN_QUIZ = [
+  /* ---------- 단모음 ↔ 장모음 짝 (2지선다) ---------- */
+  { id: 'pq-cap',  round: 'pair', ans: 'cap',  choices: ['cap', 'cape'], cue: '단모음 a' },
+  { id: 'pq-cape', round: 'pair', ans: 'cape', choices: ['cape', 'cap'], cue: '매직 e · a_e' },
+  { id: 'pq-pin',  round: 'pair', ans: 'pin',  choices: ['pin', 'pine'], cue: '단모음 i' },
+  { id: 'pq-pine', round: 'pair', ans: 'pine', choices: ['pine', 'pin'], cue: '매직 e · i_e' },
+  { id: 'pq-hop',  round: 'pair', ans: 'hop',  choices: ['hop', 'hope'], cue: '단모음 o' },
+  { id: 'pq-hope', round: 'pair', ans: 'hope', choices: ['hope', 'hop'], cue: '매직 e · o_e' },
+  { id: 'pq-cub',  round: 'pair', ans: 'cub',  choices: ['cub', 'cube'], cue: '단모음 u' },
+  { id: 'pq-cube', round: 'pair', ans: 'cube', choices: ['cube', 'cub'], cue: '매직 e · u_e' },
+
+  /* ---------- Step 1 · 단모음 / 장모음 (4지선다) ---------- */
+  { id: 'q-s1-1', round: 's1', ans: 'cat',  choices: ['cat', 'cake', 'cap', 'bag'],   cue: '단모음 a' },
+  { id: 'q-s1-2', round: 's1', ans: 'cake', choices: ['cake', 'cat', 'name', 'bike'], cue: '매직 e · a_e' },
+  { id: 'q-s1-3', round: 's1', ans: 'pig',  choices: ['pig', 'pin', 'bike', 'pine'],  cue: '단모음 i' },
+  { id: 'q-s1-4', round: 's1', ans: 'bike', choices: ['bike', 'pig', 'five', 'sit'],  cue: '매직 e · i_e' },
+  { id: 'q-s1-5', round: 's1', ans: 'dog',  choices: ['dog', 'box', 'home', 'bone'],  cue: '단모음 o' },
+  { id: 'q-s1-6', round: 's1', ans: 'home', choices: ['home', 'dog', 'nose', 'mop'],  cue: '매직 e · o_e' },
+  { id: 'q-s1-7', round: 's1', ans: 'sun',  choices: ['sun', 'bus', 'cube', 'cup'],   cue: '단모음 u' },
+  { id: 'q-s1-8', round: 's1', ans: 'cube', choices: ['cube', 'cub', 'tube', 'cup'],  cue: '매직 e · u_e' },
+
+  /* ---------- Step 2 · 자음군 / 이중자음 ---------- */
+  { id: 'q-s2-1', round: 's2', ans: 'ship',  choices: ['ship', 'shop', 'fish', 'wash'],    cue: 'sh' },
+  { id: 'q-s2-2', round: 's2', ans: 'chin',  choices: ['chin', 'chat', 'chair', 'lunch'],  cue: 'ch' },
+  { id: 'q-s2-3', round: 's2', ans: 'thin',  choices: ['thin', 'this', 'bath', 'three'],   cue: 'th' },
+  { id: 'q-s2-4', round: 's2', ans: 'star',  choices: ['star', 'stop', 'step', 'best'],    cue: 'st' },
+  { id: 'q-s2-5', round: 's2', ans: 'train', choices: ['train', 'trip', 'truck', 'star'],  cue: 'tr' },
+  { id: 'q-s2-6', round: 's2', ans: 'black', choices: ['black', 'blue', 'block', 'plane'], cue: 'bl' },
+  { id: 'q-s2-7', round: 's2', ans: 'frog',  choices: ['frog', 'friend', 'green', 'grass'], cue: 'fr' },
+  { id: 'q-s2-8', round: 's2', ans: 'clock', choices: ['clock', 'block', 'black', 'plane'], cue: 'cl · pl' },
+
+  /* ---------- Step 3 · 이중모음 / 응용 ---------- */
+  { id: 'q-s3-1', round: 's3', ans: 'rain', choices: ['rain', 'play', 'day', 'wait'],    cue: 'ai · ay' },
+  { id: 'q-s3-2', round: 's3', ans: 'boat', choices: ['boat', 'snow', 'coat', 'grow'],   cue: 'oa · ow' },
+  { id: 'q-s3-3', round: 's3', ans: 'seed', choices: ['seed', 'eat', 'read', 'sea'],     cue: 'ee · ea' },
+  { id: 'q-s3-4', round: 's3', ans: 'book', choices: ['book', 'moon', 'look', 'food'],   cue: 'oo' },
+  { id: 'q-s3-5', round: 's3', ans: 'car',  choices: ['car', 'farm', 'park', 'arm'],     cue: 'ar' },
+  { id: 'q-s3-6', round: 's3', ans: 'fork', choices: ['fork', 'horse', 'corn', 'short'], cue: 'or' },
+  { id: 'q-s3-7', round: 's3', ans: 'bird', choices: ['bird', 'girl', 'turn', 'her'],    cue: 'er · ir · ur' },
+  { id: 'q-s3-8', round: 's3', ans: 'wait', choices: ['wait', 'rain', 'day', 'play'],    cue: 'ai · ay' },
+
+  /* ---------- Step 4 · 심화 ---------- */
+  { id: 'q-s4-1', round: 's4', ans: 'street', choices: ['street', 'strong', 'spring', 'straw'],   cue: 'str' },
+  { id: 'q-s4-2', round: 's4', ans: 'spray',  choices: ['spray', 'sprout', 'sprint', 'scream'],   cue: 'spr' },
+  { id: 'q-s4-3', round: 's4', ans: 'scream', choices: ['scream', 'scrub', 'screen', 'splash'],    cue: 'scr' },
+  { id: 'q-s4-4', round: 's4', ans: 'splash', choices: ['splash', 'split', 'throw', 'thread'],     cue: 'spl' },
+  { id: 'q-s4-5', round: 's4', ans: 'shrimp', choices: ['shrimp', 'shrink', 'throw', 'thread'],    cue: 'shr' },
+  { id: 'q-s4-6', round: 's4', ans: 'whale',  choices: ['whale', 'wheel', 'phone', 'photo'],      cue: 'wh · ph' },
+  { id: 'q-s4-7', round: 's4', ans: 'king',   choices: ['king', 'song', 'duck', 'sock'],          cue: 'ng · ck' },
+  { id: 'q-s4-8', round: 's4', ans: 'knee',   choices: ['knee', 'write', 'walked', 'jumping'],    cue: '묵음 k · w' }
+];
+
+/* 사이트 워드 찾기 문제는 목록에서 만들어 넣습니다(같은 낱말이 겹치지 않게) */
+(function () {
+  const n = EN_SIGHT.length;
+  EN_SIGHT.forEach((s, i) => {
+    const picks = [i];
+    [3, 7, 11].forEach(step => {
+      let k = (i + step) % n, guard = 0;
+      while ((picks.indexOf(k) >= 0) && guard++ < n) k = (k + 1) % n;
+      if (picks.indexOf(k) < 0) picks.push(k);
+    });
+    EN_QUIZ.push({
+      id: 'sw-' + s.id, round: 'sight', kind: 'sight', ans: s.id,
+      choices: picks.map(k => EN_SIGHT[k].id), cue: s.ko
+    });
+  });
+})();
+
+window.EN_QUIZ_BY_ID = Object.fromEntries(EN_QUIZ.map(q => [q.id, q]));
+
+/* =====================================================================
+   리더스 문장 블록 맞추기 — 리더스마다 핵심 문장 한 줄을 단어 블록으로 나눕니다
+   (line: 그 리더스 6줄 중 고른 줄 번호)
+   ===================================================================== */
+window.EN_BLOCK_LINES = {
+  m01: 5, m02: 0, m03: 0, m04: 0, m05: 0, m06: 0, m07: 2, m08: 0,
+  m09: 0, m10: 0, m11: 0, m12: 0, m13: 0, m14: 0, m15: 1, m16: 0,
+  m17: 0, m18: 2, m19: 0, m20: 0, m21: 0, m22: 4, m23: 2, m24: 2,
+  m25: 0, m26: 0
+};
+window.EN_BLOCKS = EN_MISSIONS.map(m => {
+  const idx = EN_BLOCK_LINES[m.id] == null ? 0 : EN_BLOCK_LINES[m.id];
+  const line = m.lines[idx] || m.lines[0];
+  return {
+    mission: m.id, step: m.step, line: idx,
+    sentence: line,
+    words: line.replace(/\s+/g, ' ').trim().split(' ')
+  };
+});
+window.EN_BLOCK_BY_ID = Object.fromEntries(EN_BLOCKS.map(b => [b.mission, b]));

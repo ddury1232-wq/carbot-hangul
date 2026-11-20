@@ -38,7 +38,10 @@
     $('#todayPickName').textContent = todayPick ? todayPick.name + ' · ' + todayPick.seriesName : '모든 카봇 완성! 🏆';
 
     const due = Store.dueList();
-    $('#reviewCount').textContent = due.length ? due.length + '마리 복습할 수 있어요' : '오늘 복습할 카봇이 없어요';
+    const enDue = Store.enDueList();
+    $('#reviewCount').textContent = (due.length + enDue.length)
+      ? ('카봇 ' + due.length + ' · 영어 낱말 ' + enDue.length + '개')
+      : '오늘 복습할 카드가 없어요';
 
     const row = $('#recentRow');
     row.innerHTML = '';
@@ -70,6 +73,7 @@
     document.body.classList.remove('in-en');
     const enP = document.getElementById('enPractice');
     if (enP && !enP.classList.contains('hidden')) English.showList();
+    if (window.EnglishExtras && EnglishExtras.isOpen()) English.showList();
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const page = document.getElementById('page-' + name);
     if (page) page.classList.add('active');
@@ -95,6 +99,7 @@
     if (active === 'page-write') Writing.renderList();
     if (active === 'page-sketch') Sketch.renderGallery();
     if (active === 'page-settings') Settings.fill();
+    if (active === 'page-english') English.render();
   }
 
   function bind() {

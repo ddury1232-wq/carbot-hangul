@@ -177,6 +177,28 @@
           </div>
         </div>
 
+        <div class="card en-today" id="enTodayCard">
+          <div class="et-head">
+            <span class="et-emoji">🔁</span>
+            <div class="et-text"><b>오늘의 영어 복습</b><small id="enTodayText">복습할 낱말을 확인해요</small></div>
+            <button class="btn primary et-btn" id="enBtnEnReview">복습 시작</button>
+          </div>
+          <div class="et-chips" id="enTodayChips"></div>
+        </div>
+
+        <div class="en-corners">
+          <button class="en-corner" id="enCornerQuiz">
+            <span class="ec-emoji">🎧</span>
+            <span class="ec-body"><b>소리 듣고 고르기</b><small id="enQuizStat">단·장모음 구별 퀴즈</small></span>
+            <span class="ec-go">›</span>
+          </button>
+          <button class="en-corner" id="enCornerSight">
+            <span class="ec-emoji">⭐</span>
+            <span class="ec-body"><b>사이트 워드</b><small id="enSightStat">리더스 빈출 낱말 카드</small></span>
+            <span class="ec-go">›</span>
+          </button>
+        </div>
+
         <h2 class="sec-title">🎯 파닉스 단계</h2>
         <div class="en-steps" id="enStepChips"></div>
         <p class="hint-line" id="enStepIntro"></p>
@@ -261,12 +283,83 @@
           </div>
           <div class="reader-lines" id="enReaderLines"></div>
           <div class="reader-words hidden" id="enReaderWords"></div>
+          <div class="reader-block" id="enReaderBlock">
+            <div class="rb-head">
+              <b>🧩 문장 블록 맞추기</b>
+              <button class="icon-btn rb-hear" id="enBtnBlockHear">🔊 문장 듣기</button>
+            </div>
+            <p class="rb-hint" id="enBlockHint">단어를 순서대로 눌러 문장을 만들어요</p>
+            <div class="rb-target" id="enBlockTarget"></div>
+            <div class="rb-bank" id="enBlockBank"></div>
+            <div class="rb-foot">
+              <span class="rb-status" id="enBlockStatus"></span>
+              <button class="icon-btn rb-reset" id="enBtnBlockReset">↺ 처음부터</button>
+            </div>
+          </div>
         </div>
         <div class="prac-actions reader-actions">
           <button class="btn ghost" id="enBtnGloss">💡 단어 뜻</button>
           <button class="btn ghost" id="enBtnStopRead">⏹ 멈추기</button>
           <button class="btn primary" id="enBtnReadDone">다 읽었어요! ⭐</button>
         </div>
+      </div>
+
+      <div id="enQuiz" class="hidden">
+        <div class="practice-top">
+          <button class="icon-btn" id="enBtnQuizBack">‹ 영어</button>
+          <div class="practice-name">🎧 소리 듣고 고르기</div>
+          <button class="icon-btn" id="enBtnQuizReplay">🔊 다시 듣기</button>
+        </div>
+
+        <div id="enQuizPlay">
+          <div class="quiz-rounds" id="enQuizRounds"></div>
+          <div class="card quiz-card">
+            <div class="quiz-head">
+              <span class="quiz-tag" id="enQuizRound">짝 소리</span>
+              <span class="quiz-step" id="enQuizProgress">1 / 8</span>
+            </div>
+            <div class="meter"><div class="meter-fill" id="enQuizBar"></div><span id="enQuizBarText"></span></div>
+            <button class="quiz-play" id="enBtnQuizPlay"><span>🔊</span><b>다시 듣기</b></button>
+            <p class="quiz-hint" id="enQuizHint">소리를 잘 듣고 알맞은 카드를 골라요</p>
+            <div class="quiz-choices" id="enQuizChoices"></div>
+            <p class="quiz-feedback" id="enQuizFeedback"></p>
+          </div>
+          <div class="prac-actions">
+            <button class="btn ghost" id="enBtnQuizSkip">건너뛰기</button>
+            <button class="btn primary" id="enBtnQuizNext" disabled>다음 문제 ›</button>
+          </div>
+        </div>
+
+        <div id="enQuizResult" class="hidden">
+          <div class="reward-card">
+            <div class="reward-burst">🎧</div>
+            <p class="en-kicker center">LISTENING QUIZ</p>
+            <h2 id="enQuizResultTitle">잘 들었어요!</h2>
+            <p id="enQuizResultSub">8문제 중 6문제를 맞혔어요</p>
+            <div class="quiz-stars" id="enQuizStars"></div>
+            <div class="reward-actions">
+              <button class="btn primary" id="enBtnQuizAgain">한 번 더</button>
+              <button class="btn ghost" id="enBtnQuizToEnglish">영어 화면으로</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="enSight" class="hidden">
+        <div class="practice-top">
+          <button class="icon-btn" id="enBtnSightBack">‹ 영어</button>
+          <div class="practice-name">⭐ 사이트 워드</div>
+          <button class="icon-btn" id="enBtnSightFind">🔍 찾기 놀이</button>
+        </div>
+        <div class="card sight-hero">
+          <div class="sh-text">
+            <b>리더스에 자주 나오는 말</b>
+            <small>카드를 누르면 소리가 나고, ✍️ 를 누르면 따라 써요</small>
+          </div>
+          <div class="sh-badge"><b id="enSightDone">0</b><span>/ <i id="enSightTotal">0</i></span></div>
+        </div>
+        <div class="sight-grid" id="enSightGrid"></div>
+        <p class="tiny-note">한 번 익힌 낱말은 1·3·7·14·30일 뒤에 복습으로 다시 만나요.</p>
       </div>
     </section>
 
@@ -276,10 +369,18 @@
         <p class="rh-emoji">🔁</p>
         <h2>오늘의 복습</h2>
         <p id="reviewHeroText">잊지 않게 다시 만나요!</p>
-        <button class="btn primary" id="btnStartReview">복습 시작</button>
+        <div class="rv-btns">
+          <button class="btn primary" id="btnStartReview">한글 카봇 복습</button>
+          <button class="btn ghost" id="btnStartEnReview">영어 낱말 복습</button>
+        </div>
+      </div>
+      <div class="rv-switch" id="rvSwitch">
+        <button class="rv-sw active" data-scope="all">함께 보기</button>
+        <button class="rv-sw" data-scope="kr">한글 카봇</button>
+        <button class="rv-sw" data-scope="en">영어 낱말</button>
       </div>
       <div class="review-list" id="reviewList"></div>
-      <p class="tiny-note">1일 → 3일 → 7일 → 14일 → 30일 간격으로 다시 만나요.</p>
+      <p class="tiny-note">1일 → 3일 → 7일 → 14일 → 30일 간격으로 다시 만나요. (한글·영어 같아요)</p>
     </section>
 
     <!-- ================= STORY ================= -->
@@ -395,6 +496,7 @@
 <script src="js/store.js"></script>
 <script src="js/writing.js"></script>
 <script src="js/english.js"></script>
+<script src="js/english-extras.js"></script>
 <script src="js/watch.js"></script>
 <script src="js/review.js"></script>
 <script src="js/story.js"></script>

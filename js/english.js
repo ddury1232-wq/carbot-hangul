@@ -9,7 +9,7 @@
 
   const E = {
     step: 's1',
-    word: null, stepNo: 1, strokesCount: 0,
+    word: null, stepNo: 1, steps: 3, mode: 'words', strokesCount: 0,
     strokes: [], cur: null, drawing: false,
     canvas: null, ctx: null, guideOn: true, passed: false,
     w: 0, h: 0, dpr: 1, fs: 60, baseY: 0, startX: 0, adv: 0,
@@ -86,11 +86,13 @@
     const en = enState();
     const r = wordRec(id);
     const before = stepCores(EN_WORD_BY_ID[id].step);
+    const first = !r.done;
     r.steps = Math.min(3, (r.steps || 0) + 1);
     r.t = Date.now();
     if (!r.done && r.steps >= 3) r.done = true;
     en.last = Date.now();
-    Store.save('en');
+    // 복습 일정(1·3·7·14·30일)도 함께 잡아 저장합니다
+    Store.enWordDone(id, first && r.done);
     return { wasDone: r.done, coresBefore: before, coresAfter: stepCores(EN_WORD_BY_ID[id].step) };
   }
   function markMissionRead(id) {
@@ -108,6 +110,7 @@
     renderSteps();
     renderWordGrid();
     renderMissions();
+    if (window.EnglishExtras) { try { EnglishExtras.renderHome(); } catch (e) { console.warn(e); } }
   }
 
   function renderHero() {
@@ -175,12 +178,14 @@
     mts.forEach((m, i) => {
       const unlocked = cores >= EN_CORES_PER_MISSION * (i + 1);
       const read = missionRead(m.id);
+      const blk = ((Store.state.en && Store.state.en.blocks) || {})[m.id];
+      const blockDone = !!(blk && blk.done);
       const c = CARBOT_BY_ID[m.carbot] || { name: '카봇', img: '' };
       const item = U.el('button', 'en-mission' + (unlocked ? '' : ' locked') + (read ? ' read' : ''));
       item.innerHTML =
         '<img src="' + c.img + '" alt="' + c.name + '" loading="lazy">' +
         '<span class="m-body"><b>' + m.title + '</b><small>' + m.ko + ' · ' + c.name + '</small>' +
-        '<span class="m-meta">' + (unlocked ? (read ? '⭐ 읽음' : '📖 열림 · 6줄 리더스') : '⚡ ' + missionNeed(m) + '개 더 모으면 열려요') + '</span></span>' +
+        '<span class="m-meta">' + (unlocked ? (read ? '⭐ 읽음' : '📖 열림 · 6줄 리더스') + (blockDone ? ' · 🧩 문장 완성' : '') : '⚡ ' + missionNeed(m) + '개 더 모으면 열려요') + '</span></span>' +
         '<span class="m-go">' + (unlocked ? '›' : '🔒') + '</span>';
       item.addEventListener('click', () => {
         if (!unlocked) { U.toast('⚡ 에너지 코어 ' + missionNeed(m) + '개를 더 모아요!'); return; }
@@ -195,30 +200,40 @@
      ===================================================================== */
   function showList() {
     document.body.classList.remove('in-en');
+    E.mode = 'words';
     $('#enHome').classList.remove('hidden');
-    $('#enPractice').classList.add('hidden');
-    $('#enReader').classList.add('hidden');
-    $('#enReward').classList.add('hidden');
+    ['#enPractice', '#enReader', '#enReward', '#enQuiz', '#enSight'].forEach(sel => {
+      const el = $(sel); if (el) el.classList.add('hidden');
+    });
     U.stopSpeak(); stopSpeak();
     render();
   }
 
-  function openWord(id) {
-    const w = EN_WORD_BY_ID[id]; if (!w) return;
+  function openWord(id) { openPractice(EN_WORD_BY_ID[id], 'words'); }
+  function openSightWord(id) { openPractice(EN_SIGHT_BY_ID[id], 'sight'); }
+
+  /* mode: 'words'(파닉스 단어 쓰기) | 'sight'(사이트 워드 따라쓰기 1회) */
+  function openPractice(w, mode) {
+    if (!w) return;
+    E.mode = mode || 'words';
+    E.steps = E.mode === 'sight' ? 1 : 3;
     E.word = w; E.stepNo = 1; E.strokes = []; E.cur = null; E.passed = false;
     E.guideOn = true;
-    $('#enHome').classList.add('hidden');
-    $('#enReader').classList.add('hidden');
+    ['#enHome', '#enReader', '#enReward', '#enQuiz', '#enSight'].forEach(sel => {
+      const el = $(sel); if (el) el.classList.add('hidden');
+    });
     $('#enPractice').classList.remove('hidden');
-    $('#enReward').classList.add('hidden');
     document.body.classList.add('in-en');
 
     $('#enWordTitle').textContent = w.w;
-    $('#enWordKo').textContent = w.emoji + ' ' + w.ko;
-    $('#enWordFocus').textContent = w.alt ? (w.alt + ' ↔ ' + w.w + ' · ' + w.f) : w.f;
+    $('#enWordKo').textContent = (w.emoji || '🔤') + ' ' + w.ko + (w.ex ? ' · ' + w.ex : '');
+    $('#enWordFocus').textContent = E.mode === 'sight'
+      ? '⭐ Sight Word · 통째로 읽는 말'
+      : (w.alt ? (w.alt + ' ↔ ' + w.w + ' · ' + w.f) : w.f);
     $('#enPracticeName').textContent = w.w;
-    const r = enState().words[id];
-    E.stepNo = (r && !r.done && r.steps > 0) ? Math.min(3, r.steps + 1) : 1;
+    const r = E.mode === 'sight' ? enState().sight.words[w.id] : enState().words[w.id];
+    E.stepNo = (E.mode === 'sight' || (r && !r.done && r.steps > 0)) ? 1 : 1;
+    if (E.mode !== 'sight' && r && !r.done && r.steps > 0) E.stepNo = Math.min(3, r.steps + 1);
     updateStepUI();
     resize();
     setTimeout(resize, 60);
@@ -230,6 +245,7 @@
   function updateStepUI() {
     U.$$('#enStepRow .step').forEach(s => {
       const n = Number(s.dataset.step);
+      s.style.display = n > E.steps ? 'none' : '';
       s.classList.toggle('active', n === E.stepNo);
       s.classList.toggle('done', n < E.stepNo);
     });
@@ -239,7 +255,10 @@
     if (tip) tip.textContent = E.stepNo === 1 ? '점선 글자를 따라 천천히 써 보세요'
       : E.stepNo === 2 ? '이번엔 점선 없이 혼자!' : '마지막! 한 번 더 써 봐요';
     const btn = $('#enBtnNext');
-    if (btn) { btn.disabled = true; btn.textContent = E.stepNo < 3 ? '다음 ›' : '암호 완성! ⚡'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = E.stepNo < E.steps ? '다음 ›' : (E.mode === 'sight' ? '다 썼어요 ⭐' : '암호 완성! ⚡');
+    }
     E.passed = false;
   }
 
@@ -444,7 +463,12 @@
   /* ---------------- 단계 진행 ---------------- */
   function nextStep() {
     if (!E.passed) { U.toast('조금만 더 써 볼까요? ✍️'); return; }
-    const isLast = E.stepNo >= 3;
+    if (E.mode === 'sight') {
+      Store.enSightDone(E.word.id);
+      showSightReward(E.word);
+      return;
+    }
+    const isLast = E.stepNo >= E.steps;
     const res = completeWord(E.word.id);
     if (!isLast) {
       E.stepNo++; E.strokes = []; E.cur = null;
@@ -461,6 +485,10 @@
     const box = $('#enReward');
     box.classList.remove('hidden');
     const w = E.word;
+    const kick = box.querySelector('.en-kicker');
+    if (kick) kick.textContent = 'CODE COMPLETE · 영어 암호 완성!';
+    const ca = box.querySelector('.core-award');
+    if (ca) ca.style.display = '';
     $('#enRewardWord').textContent = w.w;
     $('#enRewardKo').textContent = w.emoji + ' ' + w.ko;
     $('#enRewardCores').textContent = stepCores(w.step);
@@ -489,6 +517,31 @@
   /* =====================================================================
      리더스 미션
      ===================================================================== */
+  /* 사이트 워드 따라쓰기 보상 — 코어 대신 별 하나 */
+  function showSightReward(w) {
+    $('#enPractice').classList.add('hidden');
+    const box = $('#enReward');
+    box.classList.remove('hidden');
+    const kick = box.querySelector('.en-kicker');
+    if (kick) kick.textContent = 'SIGHT WORD · 통째로 읽는 말';
+    const ca = box.querySelector('.core-award');
+    if (ca) ca.style.display = 'none';
+    $('#enRewardWord').textContent = w.w;
+    $('#enRewardKo').textContent = (w.emoji || '⭐') + ' ' + w.ko + (w.ex ? ' · ' + w.ex : '');
+    $('#enRewardSub').textContent = '⭐ 사이트 워드를 읽고 썼어요! 내일 복습에서 다시 만나요';
+    const go = $('#enBtnGoReader');
+    if (go) go.style.display = 'none';
+    const more = $('#enBtnNextWord');
+    if (more) {
+      more.style.display = '';
+      more.className = 'btn primary';
+      more.textContent = '▶ 다음 낱말';
+    }
+    U.fanfare();
+    speakEN(w.w + '! Great job!', { silent: true });
+    if (window.EnglishExtras) { try { EnglishExtras.renderSight(); } catch (e) {} }
+  }
+
   function openReader(id) {
     const m = EN_MISSIONS.find(x => x.id === id); if (!m) return;
     E.mission = m; E.showGloss = false; E.readDone = missionRead(m.id);
@@ -525,6 +578,7 @@
       mark.classList.toggle('done', E.readDone);
     }
     renderGloss();
+    if (window.EnglishExtras) { try { EnglishExtras.renderBlock(m.id); } catch (e) { console.warn(e); } }
   }
 
   function renderGloss() {
@@ -624,7 +678,10 @@
       cv.addEventListener('pointercancel', onUp);
       cv.addEventListener('pointerleave', (e) => { if (E.drawing) onUp(e); });
     }
-    $('#enBtnBack') && $('#enBtnBack').addEventListener('click', () => { U.click(); showList(); });
+    $('#enBtnBack') && $('#enBtnBack').addEventListener('click', () => {
+      U.click();
+      if (E.mode === 'sight' && window.EnglishExtras) EnglishExtras.openSight(); else showList();
+    });
     $('#enBtnSpeak') && $('#enBtnSpeak').addEventListener('click', () => {
       if (!E.word) return;
       speakEN(E.word.w);
@@ -632,6 +689,11 @@
     });
     $('#enBtnNext') && $('#enBtnNext').addEventListener('click', nextStep);
     $('#enBtnSkip') && $('#enBtnSkip').addEventListener('click', () => {
+      if (E.mode === 'sight') {
+        Store.enSightDone(E.word.id);
+        showSightReward(E.word);
+        return;
+      }
       if (E.stepNo < 3) {
         E.stepNo++; E.strokes = []; E.cur = null;
         updateStepUI(); redraw(); settleMeter();
@@ -652,9 +714,19 @@
       e.currentTarget.classList.toggle('on', E.guideOn);
       redraw();
     });
-    $('#enBtnAnother') && $('#enBtnAnother').addEventListener('click', () => { U.click(); showList(); });
+    $('#enBtnAnother') && $('#enBtnAnother').addEventListener('click', () => {
+      U.click();
+      if (E.mode === 'sight' && window.EnglishExtras) EnglishExtras.openSight(); else showList();
+    });
     $('#enBtnNextWord') && $('#enBtnNextWord').addEventListener('click', () => {
       U.click();
+      if (E.mode === 'sight') {
+        const list = EN_SIGHT;
+        const cur = list.findIndex(x => x.id === (E.word && E.word.id));
+        const next = list[(cur + 1) % list.length];
+        if (next) openSightWord(next.id);
+        return;
+      }
       const list = stepWords(E.step);
       const cur = list.findIndex(x => x.id === (E.word && E.word.id));
       const next = list[(cur + 1) % list.length];
@@ -677,6 +749,7 @@
     window.addEventListener('resize', U.debounce(() => {
       if ($('#enPractice') && !$('#enPractice').classList.contains('hidden')) resize();
     }, 160));
+    if (window.EnglishExtras) { try { EnglishExtras.bind(); } catch (e) { console.warn(e); } }
   }
 
   Store.onChange(() => {
@@ -685,6 +758,7 @@
     }
   });
 
-  window.English = { render, bind, openWord, openReader, showList, resize, E,
+  window.English = { render, bind, openWord, openSightWord, openPractice, openReader, showList, resize, E,
+                     speakEN, stopSpeak,
                      cores: totalCores, stepCores, wordDone, missionUnlocked, missionRead };
 })();
